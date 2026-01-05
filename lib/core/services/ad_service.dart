@@ -15,7 +15,7 @@ class AdService {
     if (Platform.isAndroid) {
       return 'ca-app-pub-1508482824588822/5603669055';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx';
+      return 'ca-app-pub-1508482824588822/1698554380';
     }
     throw UnsupportedError('Unsupported platform');
   }
