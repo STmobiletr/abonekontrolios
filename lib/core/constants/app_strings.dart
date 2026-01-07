@@ -4,9 +4,9 @@ class AppStrings {
   static const String dashboard = "Ana Menü";
   static const String analytics = "Analizler";
   static const String settings = "Ayarlar";
-  static const String version = "abonekontrol.com";
-  static const String versionBeta = "Instagram:";
-  static const String madeBy = "Made with ❤ by Taha";
+  static const String version = "destek@abonekontrol.com";
+  static const String versionBeta = "abonekontrol.com";
+  static const String madeBy = "Made with by STmobile";
 
   // Dashboard
   static const String yourSubscriptions = "Aboneliklerim";
