@@ -53,5 +53,9 @@
 		<false/>
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-1508482824588822~4999505148</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Abonelik kayıtlarınıza isteğe bağlı olarak görsel/fiş ekleyebilmeniz için fotoğraf arşivinize erişim gerekir.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Abonelik kayıtlarınıza görsel kaydedebilmeniz için fotoğraf arşivinize ekleme izni gerekir.</string>
 	</dict>
 </plist>
