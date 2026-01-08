@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'core/services/ad_service.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'core/services/notification_service.dart';
 import 'core/constants/app_colors.dart';
 import 'features/subscriptions/models/subscription_model.dart';
 import 'features/settings/providers/settings_provider.dart';
-import 'core/constants/app_strings.dart';
 
 /// App initialization
 void main() async {
@@ -20,8 +20,9 @@ void main() async {
 
       // Initialize Mobile Ads
       try {
-        // Uncomment the following line to enable ads
-        MobileAds.instance.initialize();
+        // Ads initialize
+        await MobileAds.instance.initialize();
+        await AdService.initialize();
       } catch (e) {
         debugPrint("Failed to initialize Mobile Ads: $e");
       }
@@ -85,7 +86,7 @@ class AboneKontrolApp extends ConsumerWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: AppStrings.appName,
+      title: 'SubZero Subscription Manager',
       theme: ThemeData(
         brightness: settings.isDarkMode ? Brightness.dark : Brightness.light,
         scaffoldBackgroundColor: settings.isDarkMode
