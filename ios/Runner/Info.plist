@@ -57,5 +57,12 @@
 	<string>Uygulama, ödeme fişini/ekran görüntüsünü eklemek için fotoğraf arşivinize erişim ister.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Uygulama, ödeme fişini/ekran görüntüsünü kaydetmek için fotoğraf arşivinize ekleme izni ister.</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>

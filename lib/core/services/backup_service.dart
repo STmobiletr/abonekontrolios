@@ -56,7 +56,7 @@ class BackupService {
       // Save File
       if (Platform.isAndroid || Platform.isIOS) {
         String? outputFile = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save Backup File',
+          dialogTitle: 'Yedek Dosyasını Kaydet',
           fileName: fileName,
           bytes: utf8.encode(jsonString),
           type: FileType.custom,
@@ -130,7 +130,7 @@ class BackupService {
             nextBillingDate: DateTime.parse(subData['nextBillingDate']),
             cancellationUrl: subData['cancellationUrl'],
             colorHex: subData['colorHex'],
-            category: subData['category'] ?? 'Entertainment',
+            category: subData['category'] ?? 'Eğlence',
           );
           await _subscriptionBox.add(sub);
         }

@@ -60,8 +60,8 @@ class NotificationService {
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'billing_channel',
-            'Subscription Reminders',
-            channelDescription: 'Reminds you before a subscription charges you',
+            'Abonelik Hatırlatıcıları',
+            channelDescription: 'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
             importance: Importance.max,
             priority: Priority.high,
             color: AppColors.primaryAccent,

@@ -9,6 +9,7 @@ import 'core/services/notification_service.dart';
 import 'core/constants/app_colors.dart';
 import 'features/subscriptions/models/subscription_model.dart';
 import 'features/settings/providers/settings_provider.dart';
+import 'core/constants/app_strings.dart';
 
 /// App initialization
 void main() async {
@@ -84,7 +85,7 @@ class AboneKontrolApp extends ConsumerWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'SubZero Subscription Manager',
+      title: AppStrings.appName,
       theme: ThemeData(
         brightness: settings.isDarkMode ? Brightness.dark : Brightness.light,
         scaffoldBackgroundColor: settings.isDarkMode

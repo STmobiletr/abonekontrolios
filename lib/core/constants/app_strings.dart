@@ -4,9 +4,9 @@ class AppStrings {
   static const String dashboard = "Ana Menü";
   static const String analytics = "Analizler";
   static const String settings = "Ayarlar";
-  static const String version = "destek@abonekontrol.com";
-  static const String versionBeta = "abonekontrol.com";
-  static const String madeBy = "Made with by STmobile";
+  static const String version = "abonekontrol.com";
+  static const String versionBeta = "destek@abonekontrol.com";
+  static const String madeBy = "STmobile tarafından";
 
   // Dashboard
   static const String yourSubscriptions = "Aboneliklerim";
@@ -67,7 +67,7 @@ class AppStrings {
   static const String serviceName = "Hizmet Adı";
   static const String category = "Kategori";
   static const String priceMonthly = "Fiyat (Aylık)";
-  static const String cancelUrlOptional = "Cancel URL (Opsiyonel)";
+  static const String cancelUrlOptional = "İptal URL'si (Opsiyonel)";
   static const String firstBill = "İlk Ödeme: ";
   static const String cycle = "Döngü: ";
   static const String monthly = "Aylık";

@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/services/notification_service.dart';
 import '../../subscriptions/providers/subscription_providers.dart';
+import '../../../core/constants/app_strings.dart';
 
 part 'settings_provider.g.dart';
 
@@ -114,8 +115,8 @@ class SettingsNotifier extends _$SettingsNotifier {
       for (final sub in subscriptions) {
         await NotificationService().scheduleBillingNotification(
           id: sub.id.hashCode,
-          title: "Upcoming Payment: ${sub.name}",
-          body: "${sub.price} is due tomorrow!",
+          title: "${AppStrings.upcomingCharge}${sub.name}",
+          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
           scheduledDate: sub.nextBillingDate,
         );
       }

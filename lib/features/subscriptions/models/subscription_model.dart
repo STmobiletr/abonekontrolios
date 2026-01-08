@@ -41,6 +41,6 @@ class SubscriptionModel extends HiveObject {
     required this.nextBillingDate,
     this.cancellationUrl,
     this.colorHex,
-    this.category = 'Entertainment',
+    this.category = 'Eğlence',
   });
 }
