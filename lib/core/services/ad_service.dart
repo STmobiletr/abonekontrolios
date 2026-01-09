@@ -1,107 +1,97 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// Reklam yönetimi (Banner).
-///
-/// Amaçlar:
-/// 1) Uygulama içinde "Ad error" gibi debug yazıları göstermemek.
-/// 2) Reklam isteğini aşırı sık göndermemek ("too many recently failed requests" hatasını engeller).
-/// 3) Banner'ı paylaşarak sayfalar arası gidip-gelmede tekrar tekrar yüklememek.
 class AdService {
-  /// AdMob App ID (Info.plist içinde GADApplicationIdentifier ile aynı olmalı)
-  /// iOS: ca-app-pub-xxxx~yyyy
-  static const String _admobAppId = 'ca-app-pub-1508482824588822~4999505148';
+  AdService._();
 
-  /// Banner Ad Unit ID
-  /// iOS: ca-app-pub-xxxx/yyyy
-  static const String _bannerUnitId = 'ca-app-pub-1508482824588822/1698554380';
+  static bool _initialized = false;
 
-  /// Eğer ileride reklamları kapatmak istersen bunu false yap.
-  static bool enabled = true;
+  static final ValueNotifier<BannerAd?> banner = ValueNotifier<BannerAd?>(null);
 
-  /// Tek banner'ı paylaşalım.
-  static BannerAd? _sharedBanner;
-  static bool _isLoading = false;
-  static DateTime? _lastAttempt;
+  static Timer? _retryTimer;
+  static int _retrySeconds = 30;
 
-  /// Fail olunca hemen tekrar yüklemeye çalışma.
-  static const Duration _cooldown = Duration(seconds: 30);
+  static const String _androidBannerProd = 'ca-app-pub-1508482824588822/5603669055';
+  static const String _iosBannerProd = 'ca-app-pub-1508482824588822/1698554380';
 
-  /// UI tarafı banner gelince yeniden çizsin diye.
-  static final ValueNotifier<BannerAd?> bannerNotifier = ValueNotifier<BannerAd?>(null);
+  static String get bannerAdUnitId {
+    final bool forceTest = const bool.fromEnvironment('FORCE_TEST_ADS', defaultValue: false);
+    if (forceTest && kDebugMode) {
+      if (Platform.isAndroid) return 'ca-app-pub-3940256099942544/6300978111';
+      if (Platform.isIOS) return 'ca-app-pub-3940256099942544/2934735716';
+    }
 
-  /// SDK init (main.dart içinde await edilmesi daha iyi).
-  static Future<void> ensureInitialized() async {
-    if (!enabled) return;
-    // MobileAds.instance.initialize() tekrar çağrılırsa sorun yok.
-    await MobileAds.instance.initialize();
+    if (Platform.isAndroid) return _androidBannerProd;
+    if (Platform.isIOS) return _iosBannerProd;
+
+    throw UnsupportedError('Unsupported platform');
   }
 
-  /// Banner'ı yükle (varsa tekrar yüklemez).
-  static void ensureBannerLoaded({AdSize size = AdSize.banner}) {
-    if (!enabled) {
-      _disposeBanner();
-      return;
-    }
+  static Future<void> initialize() async {
+    if (_initialized) return;
+    _initialized = true;
 
-    if (bannerNotifier.value != null) {
-      // Zaten hazır.
-      return;
-    }
+    try {
+      await MobileAds.instance.initialize();
+    } catch (_) {}
 
-    if (_isLoading) return;
+    _loadSharedBanner();
+  }
 
-    final now = DateTime.now();
-    if (_lastAttempt != null && now.difference(_lastAttempt!) < _cooldown) {
-      return;
-    }
-    _lastAttempt = now;
-    _isLoading = true;
-
-    // Eski varsa kapat.
-    _sharedBanner?.dispose();
-    _sharedBanner = null;
-
-    final banner = BannerAd(
-      adUnitId: _bannerUnitId,
-      request: const AdRequest(),
+  static BannerAd createBannerAd({
+    Function(Ad)? onAdLoaded,
+    Function(Ad, LoadAdError)? onAdFailedToLoad,
+    AdSize size = AdSize.banner,
+  }) {
+    return BannerAd(
+      adUnitId: bannerAdUnitId,
       size: size,
+      request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          _isLoading = false;
-          _sharedBanner = ad as BannerAd;
-          bannerNotifier.value = _sharedBanner;
-        },
+        onAdLoaded: (ad) => onAdLoaded?.call(ad),
         onAdFailedToLoad: (ad, error) {
-          _isLoading = false;
+          onAdFailedToLoad?.call(ad, error);
           ad.dispose();
-          // Debug yazısı göstermek YOK. Sadece sessizce banner'ı kapat.
-          bannerNotifier.value = null;
-          // Bir sonraki deneme cooldown sonrası olur.
         },
       ),
     );
-
-    banner.load();
   }
 
-  static void _disposeBanner() {
-    try {
-      _sharedBanner?.dispose();
-    } catch (_) {}
-    _sharedBanner = null;
-    bannerNotifier.value = null;
-    _isLoading = false;
+  static void _loadSharedBanner() {
+    banner.value?.dispose();
+    banner.value = null;
+
+    final BannerAd ad = createBannerAd(
+      onAdLoaded: (_) {
+        _retryTimer?.cancel();
+        _retrySeconds = 30;
+        banner.value = ad;
+      },
+      onAdFailedToLoad: (_, __) {
+        ad.dispose();
+        banner.value = null;
+        _scheduleRetry();
+      },
+    );
+
+    ad.load();
   }
 
-  /// İstersen ileride bazı ekranlarda reklam istemezsen çağır.
-  static void disableAds() {
-    enabled = false;
-    _disposeBanner();
+  static void _scheduleRetry() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer(Duration(seconds: _retrySeconds), _loadSharedBanner);
+    _retrySeconds = (_retrySeconds * 2).clamp(30, 600);
   }
 
-  /// Bilgi amaçlı: App ID burada saklı, ama iOS tarafında asıl yer Info.plist.
-  static String get admobAppId => _admobAppId;
+  static void dispose() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    banner.value?.dispose();
+    banner.value = null;
+    _initialized = false;
+    _retrySeconds = 30;
+  }
 }
