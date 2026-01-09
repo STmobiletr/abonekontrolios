@@ -13,6 +13,7 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _loaded = false;
+
   Timer? _retry;
   int _retrySeconds = 30;
 
@@ -63,7 +64,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   Widget build(BuildContext context) {
     final ad = _bannerAd;
-    if (ad == null || !_loaded) return const SizedBox.shrink();
+    if (ad == null || !_loaded) return const SizedBox.shrink(); // ✅ Yazı yok
 
     return SizedBox(
       width: ad.size.width.toDouble(),
