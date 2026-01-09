@@ -61,26 +61,32 @@ class AdService {
   }
 
   static void _loadSharedBanner() {
+    // Eski banner varsa temizle
     banner.value?.dispose();
     banner.value = null;
 
-    final BannerAd ad = createBannerAd(
-      onAdLoaded: (_) {
-        _retryTimer?.cancel();
-        _retrySeconds = 30;
-        banner.value = ad;
-      },
-      onAdFailedToLoad: (_, __) {
-        ad.dispose();
-        banner.value = null;
-        _scheduleRetry();
-      },
+    final BannerAd bannerAd = BannerAd(
+      adUnitId: bannerAdUnitId,
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          _retryTimer?.cancel();
+          _retrySeconds = 30;
+          banner.value = ad as BannerAd;
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          banner.value = null;
+          _scheduleRetry();
+        },
+      ),
     );
 
-    ad.load();
+    bannerAd.load();
   }
 
-  static void _scheduleRetry() {
+static void _scheduleRetry() {
     _retryTimer?.cancel();
     _retryTimer = Timer(Duration(seconds: _retrySeconds), _loadSharedBanner);
     _retrySeconds = (_retrySeconds * 2).clamp(30, 600);
