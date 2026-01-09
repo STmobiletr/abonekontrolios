@@ -1,5 +1,7 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# Define a global platform for the project.
+# Xcode 15+ / recent Flutter no longer supports very old iOS targets, and
+# some pods will emit warnings (or fail) if the deployment target is too low.
+platform :ios, '12.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
