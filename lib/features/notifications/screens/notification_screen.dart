@@ -81,7 +81,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            "Gelen bildirim yok",
+                            "Planlanan bildirim yok",
                             style: TextStyle(
                               color: textColor.withOpacity(0.5),
                               fontSize: 16,

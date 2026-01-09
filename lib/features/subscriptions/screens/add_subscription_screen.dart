@@ -92,7 +92,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     });
   }
 
-  void _saveSubscription() {
+  Future<void> _saveSubscription() async {
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -120,13 +120,24 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       ref.read(subscriptionRepositoryProvider).addSubscription(newSub);
     }
 
-    NotificationService().scheduleBillingNotification(
-      id: newSub.id.hashCode,
-      title: "${AppStrings.upcomingCharge}${newSub.name}",
-      body:
-          "${AppStrings.youWillBeCharged}${ref.read(settingsNotifierProvider).currencySymbol}${newSub.price}${AppStrings.chargeDisclaimer}",
-      scheduledDate: newSub.nextBillingDate,
-    );
+    // Bildirimler kapalıysa hiç planlama yapma.
+    final notificationsEnabled =
+        ref.read(settingsNotifierProvider).notificationsEnabled;
+
+    if (notificationsEnabled) {
+      final notifId = newSub.id.hashCode;
+      // Aynı ID ile eski plan kalmışsa temizle
+      await NotificationService().cancelNotification(notifId);
+
+      await NotificationService().scheduleBillingNotification(
+        id: notifId,
+        title: "${AppStrings.upcomingCharge}${newSub.name}",
+        body:
+            "${AppStrings.youWillBeCharged}${ref.read(settingsNotifierProvider).currencySymbol}${newSub.price.toStringAsFixed(2)}. "
+            "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
+        scheduledDate: newSub.nextBillingDate,
+      );
+    }
 
     Navigator.pop(context);
   }

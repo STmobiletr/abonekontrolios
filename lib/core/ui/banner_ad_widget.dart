@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/ad_service.dart';
@@ -31,13 +32,21 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     final ad = AdService.createBannerAd(
       onAdLoaded: (_) {
+        if (kDebugMode) {
+          debugPrint('Banner loaded. unitId=${AdService.bannerAdUnitId}');
+        }
         if (!mounted) return;
         setState(() {
           _loaded = true;
           _retrySeconds = 30;
         });
       },
-      onAdFailedToLoad: (_, __) {
+      onAdFailedToLoad: (_, err) {
+        if (kDebugMode) {
+          debugPrint(
+            'Banner failed. unitId=${AdService.bannerAdUnitId} code=${err.code} domain=${err.domain} message=${err.message}',
+          );
+        }
         if (!mounted) return;
         setState(() => _loaded = false);
         _scheduleRetry();

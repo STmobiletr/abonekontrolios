@@ -113,10 +113,13 @@ class SettingsNotifier extends _$SettingsNotifier {
           .read(subscriptionRepositoryProvider)
           .getSubscriptions();
       for (final sub in subscriptions) {
+        final notifId = sub.id.hashCode;
+        await NotificationService().cancelNotification(notifId);
         await NotificationService().scheduleBillingNotification(
-          id: sub.id.hashCode,
+          id: notifId,
           title: "${AppStrings.upcomingCharge}${sub.name}",
-          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
+          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. "
+              "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
           scheduledDate: sub.nextBillingDate,
         );
       }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -9,13 +8,7 @@ class AdService {
 
   static bool _initialized = false;
 
-  // İstersen başka yerlerde dinlemek için tutuyoruz (mevcut yapınla uyumlu)
-  static final ValueNotifier<BannerAd?> banner = ValueNotifier<BannerAd?>(null);
-
-  static Timer? _retryTimer;
-  static int _retrySeconds = 30;
-
-  // ✅ Senin PROD banner id’lerin
+  // ✅ PROD banner id’leri
   static const String _androidBannerProd = 'ca-app-pub-1508482824588822/5603669055';
   static const String _iosBannerProd = 'ca-app-pub-1508482824588822/1698554380';
 
@@ -23,6 +16,8 @@ class AdService {
   static const String _androidBannerTest = 'ca-app-pub-3940256099942544/6300978111';
   static const String _iosBannerTest = 'ca-app-pub-3940256099942544/2934735716';
 
+  /// Codemagic / build komutundan açılır:
+  /// flutter build ipa ... --dart-define=FORCE_TEST_ADS=true
   static bool get _forceTestAds =>
       const bool.fromEnvironment('FORCE_TEST_ADS', defaultValue: false);
 
@@ -42,8 +37,10 @@ class AdService {
     if (_initialized) return;
     _initialized = true;
 
+    if (kDebugMode) {
+      debugPrint('AdService init: FORCE_TEST_ADS=$_forceTestAds, unitId=$bannerAdUnitId');
+    }
     await MobileAds.instance.initialize();
-    _loadSharedBanner();
   }
 
   static BannerAd createBannerAd({
@@ -63,45 +60,5 @@ class AdService {
         },
       ),
     );
-  }
-
-  static void _loadSharedBanner() {
-    banner.value?.dispose();
-    banner.value = null;
-
-    final BannerAd bannerAd = BannerAd(
-      adUnitId: bannerAdUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          _retryTimer?.cancel();
-          _retrySeconds = 30;
-          banner.value = ad as BannerAd;
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-          banner.value = null;
-          _scheduleRetry();
-        },
-      ),
-    );
-
-    bannerAd.load();
-  }
-
-  static void _scheduleRetry() {
-    _retryTimer?.cancel();
-    _retryTimer = Timer(Duration(seconds: _retrySeconds), _loadSharedBanner);
-    _retrySeconds = (_retrySeconds * 2).clamp(30, 600);
-  }
-
-  static void dispose() {
-    _retryTimer?.cancel();
-    _retryTimer = null;
-    banner.value?.dispose();
-    banner.value = null;
-    _initialized = false;
-    _retrySeconds = 30;
   }
 }

@@ -111,5 +111,5 @@ static String billingCycleLabel(String value) {
   static const String upcomingCharge = "Yaklaşan Abonelik Ödemesi: ";
   static const String youWillBeCharged = "Abonelik İçin Sizden Ödeme Alınacak ";
   static const String chargeDisclaimer =
-      "Ödeme Yarın alınacak. İhtiyacınız yoksa şimdi aboneliği iptal edin!";
+      "Ödeme tarihine 1 gün kaldı. İhtiyacınız yoksa aboneliği iptal edebilirsiniz.";
 }

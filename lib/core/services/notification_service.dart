@@ -17,6 +17,14 @@ class NotificationService {
     // Initialize Timezone Database
     tz.initializeTimeZones();
 
+    // Uygulama TR odaklı olduğu için yerel zamanı İstanbul olarak sabitliyoruz.
+    // (Cihaz farklı bir bölgedeyse bile saat kayması/"hemen bildirim" sorununu azaltır.)
+    try {
+      tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
+    } catch (_) {
+      // Fallback: tz.local
+    }
+
     // Android Settings
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/launcher_icon');
@@ -49,14 +57,25 @@ class NotificationService {
       // Calculate 1 day before the billing date
       final reminderDate = scheduledDate.subtract(const Duration(days: 1));
 
+      // Tarih seçiciden gelen saat genelde 00:00 oluyor. Hatırlatmayı sabah 09:00'a çekiyoruz.
+      final reminderAtMorning = DateTime(
+        reminderDate.year,
+        reminderDate.month,
+        reminderDate.day,
+        9,
+        0,
+      );
+
       // If the date is in the past, don't schedule
-      if (reminderDate.isBefore(DateTime.now())) return;
+      if (reminderAtMorning.isBefore(DateTime.now().add(const Duration(minutes: 1)))) {
+        return;
+      }
 
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
-        tz.TZDateTime.from(reminderDate, tz.local),
+        tz.TZDateTime.from(reminderAtMorning, tz.local),
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'billing_channel',
@@ -69,6 +88,8 @@ class NotificationService {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
       debugPrint("Error scheduling notification: $e");

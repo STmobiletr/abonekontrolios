@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'core/services/ad_service.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
@@ -18,10 +17,8 @@ void main() async {
       // Ensure Flutter bindings are ready
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Initialize Mobile Ads
+      // Ads initialize
       try {
-        // Ads initialize
-        await MobileAds.instance.initialize();
         await AdService.initialize();
       } catch (e) {
         debugPrint("Failed to initialize Mobile Ads: $e");
