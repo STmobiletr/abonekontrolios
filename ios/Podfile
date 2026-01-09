@@ -1,7 +1,8 @@
 # Define a global platform for the project.
 # Xcode 15+ / recent Flutter no longer supports very old iOS targets, and
 # some pods will emit warnings (or fail) if the deployment target is too low.
-platform :ios, '12.0'
+# webview_flutter_wkwebview 3.23+ requires iOS 13.0+
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -42,10 +43,9 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
-    # Force all pods to use a supported deployment target.
-    # (Some pods still declare 9.0/11.0 and Xcode 15+ warns; this keeps it consistent.)
+    # Ensure EVERY pod compiles with iOS 13.0+ (required by webview_flutter_wkwebview)
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
   end
 end
