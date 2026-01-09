@@ -32,6 +32,30 @@ class SettingsState {
     bool? onboardingComplete,
     String? language,
   }) {
+
+
+// Uygulama açıldığında (bildirimler açıksa) bir kez tüm bildirimleri temizleyip yeniden planla.
+// Bu, eski sürümlerden kalmış "hemen gelen" bildirimleri temizler.
+if (notificationsEnabled && !_bootNotificationSyncDone) {
+  _bootNotificationSyncDone = true;
+  Future.microtask(() async {
+    try {
+      await NotificationService().cancelAllNotifications();
+      final subscriptions =
+          ref.read(subscriptionRepositoryProvider).getSubscriptions();
+      for (final sub in subscriptions) {
+        await NotificationService().scheduleBillingNotification(
+          id: sub.id.hashCode,
+          title: "${AppStrings.upcomingCharge}${sub.name}",
+          body:
+              "${AppStrings.youWillBeCharged}₺${sub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
+          scheduledDate: sub.nextBillingDate,
+        );
+      }
+    } catch (_) {}
+  });
+}
+
     return SettingsState(
       isDarkMode: isDarkMode ?? this.isDarkMode,
       currency: currency ?? this.currency,
@@ -47,7 +71,9 @@ class SettingsState {
 class SettingsNotifier extends _$SettingsNotifier {
   late Box _box;
 
-  @override
+  
+  bool _bootNotificationSyncDone = false;
+@override
   SettingsState build() {
     _box = Hive.box('settings');
 
@@ -109,17 +135,15 @@ class SettingsNotifier extends _$SettingsNotifier {
     if (!isEnabled) {
       await NotificationService().cancelAllNotifications();
     } else {
+      await NotificationService().cancelAllNotifications();
       final subscriptions = ref
           .read(subscriptionRepositoryProvider)
           .getSubscriptions();
       for (final sub in subscriptions) {
-        final notifId = sub.id.hashCode;
-        await NotificationService().cancelNotification(notifId);
         await NotificationService().scheduleBillingNotification(
-          id: notifId,
+          id: sub.id.hashCode,
           title: "${AppStrings.upcomingCharge}${sub.name}",
-          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. "
-              "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
+          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
           scheduledDate: sub.nextBillingDate,
         );
       }
