@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 
@@ -126,18 +127,24 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
         ref.read(settingsNotifierProvider).notificationsEnabled;
 
     if (notificationsEnabled) {
-      final notifId = stableNotifId(newSub.id);
-      // Aynı ID ile eski plan kalmışsa temizle
-      await NotificationService().cancelNotification(notifId);
+      // Güvenli yöntem: tüm eski planları temizle, aboneliklerin hepsini yeniden planla.
+      // Bu, iOS'ta "abonelik ekler eklemez" anlık bildirim gelmesi (eski/past plan çakışmaları) sorununu bitirir.
+      await NotificationService().cancelAllNotifications();
 
-      await NotificationService().scheduleBillingNotification(
-        id: notifId,
-        title: "${AppStrings.upcomingCharge}${newSub.name}",
-        body:
-            "${AppStrings.youWillBeCharged}${ref.read(settingsNotifierProvider).currencySymbol}${newSub.price.toStringAsFixed(2)}. "
-            "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
-        scheduledDate: newSub.nextBillingDate,
-      );
+      final settings = ref.read(settingsNotifierProvider);
+      final subsBox = Hive.box<SubscriptionModel>('subscriptions');
+
+      for (final sub in subsBox.values) {
+        final id = stableNotifId(sub.id);
+        await NotificationService().scheduleBillingNotification(
+          id: id,
+          title: "${AppStrings.upcomingCharge}${sub.name}",
+          body:
+              "${AppStrings.youWillBeCharged}${settings.currencySymbol}${sub.price.toStringAsFixed(2)}. "
+              "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
+          scheduledDate: sub.nextBillingDate,
+        );
+      }
     }
 
     Navigator.pop(context);
