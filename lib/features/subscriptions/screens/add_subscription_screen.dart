@@ -92,7 +92,6 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       _cancelUrlController.text = template.cancellationUrl ?? '';
     });
   }
-
   Future<void> _saveSubscription() async {
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -121,23 +120,20 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       ref.read(subscriptionRepositoryProvider).addSubscription(newSub);
     }
 
-    // Bildirimler kapalıysa hiç planlama yapma.
-    final notificationsEnabled =
-        ref.read(settingsNotifierProvider).notificationsEnabled;
+    final settings = ref.read(settingsNotifierProvider);
+    final notifId = stableNotifId(newSub.id);
 
-    if (notificationsEnabled) {
-      final notifId = stableNotifId(newSub.id);
-      // Aynı ID ile eski plan kalmışsa temizle
+    if (settings.notificationsEnabled) {
       await NotificationService().cancelNotification(notifId);
-
       await NotificationService().scheduleBillingNotification(
         id: notifId,
         title: "${AppStrings.upcomingCharge}${newSub.name}",
-        body:
-            "${AppStrings.youWillBeCharged}${ref.read(settingsNotifierProvider).currencySymbol}${newSub.price.toStringAsFixed(2)}. "
-            "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
+        body: "${AppStrings.youWillBeCharged}${settings.currencySymbol}${newSub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
         scheduledDate: newSub.nextBillingDate,
       );
+    } else {
+      // Bildirimler kapalıysa bu aboneliğe ait eski plan varsa iptal et
+      await NotificationService().cancelNotification(notifId);
     }
 
     Navigator.pop(context);

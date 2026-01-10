@@ -1,9 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
 import '../../../core/services/notification_service.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/stable_notif_id.dart';
 import '../../subscriptions/providers/subscription_providers.dart';
-import '../../../core/constants/app_strings.dart';
 
 part 'settings_provider.g.dart';
 
@@ -24,7 +25,6 @@ class SettingsState {
   });
 
   String get currencySymbol => '₺';
-
 
   SettingsState copyWith({
     bool? isDarkMode,
@@ -54,24 +54,26 @@ class SettingsNotifier extends _$SettingsNotifier {
 
     final isDarkMode =
         _box.get('isDarkMode', defaultValue: true) as bool? ?? true;
+
+    // Uygulama yalnızca Türk Lirası (TRY) kullanır.
     final _storedCurrency =
         _box.get('currency', defaultValue: 'TRY') as String? ?? 'TRY';
-    // Uygulama yalnızca Türk Lirası (TRY) kullanır.
     final currency = 'TRY';
     if (_storedCurrency != 'TRY') {
-      // Persist without blocking build()
       _box.put('currency', 'TRY');
     }
+
     final notificationsEnabled =
         _box.get('notificationsEnabled', defaultValue: true) as bool? ?? true;
+
     final onboardingComplete =
         _box.get('onboarding_complete', defaultValue: false) as bool? ?? false;
+
     // Uygulama yalnızca Türkçe dilini kullanır.
     final _storedLanguage =
         _box.get('language', defaultValue: 'Türkçe') as String? ?? 'Türkçe';
     final language = 'Türkçe';
     if (_storedLanguage != 'Türkçe') {
-      // Persist without blocking build()
       _box.put('language', 'Türkçe');
     }
 
@@ -109,21 +111,28 @@ class SettingsNotifier extends _$SettingsNotifier {
 
     if (!isEnabled) {
       await NotificationService().cancelAllNotifications();
-    } else {
-      final subscriptions = ref
-          .read(subscriptionRepositoryProvider)
-          .getSubscriptions();
-      for (final sub in subscriptions) {
-        final notifId = stableNotifId(sub.id);
-        await NotificationService().cancelNotification(notifId);
-        await NotificationService().scheduleBillingNotification(
-          id: notifId,
-          title: "${AppStrings.upcomingCharge}${sub.name}",
-          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. "
-              "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
-          scheduledDate: sub.nextBillingDate,
-        );
-      }
+      return;
+    }
+
+    // Bildirimler açıldı: eski planları temizle ve tüm abonelikleri yeniden planla.
+    await NotificationService().cancelAllNotifications();
+
+    final subscriptions =
+        ref.read(subscriptionRepositoryProvider).getSubscriptions();
+
+    for (final sub in subscriptions) {
+      final notifId = stableNotifId(sub.id);
+      await NotificationService().cancelNotification(notifId);
+
+      await NotificationService().scheduleBillingNotification(
+        id: notifId,
+        title: "${AppStrings.upcomingCharge}${sub.name}",
+        body:
+            "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. "
+            "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. "
+            "${AppStrings.chargeDisclaimer}",
+        scheduledDate: sub.nextBillingDate,
+      );
     }
   }
 
