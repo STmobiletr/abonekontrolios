@@ -55,7 +55,7 @@ void main() async {
 
       // Initialize Notifications
       try {
-        await await NotificationService().init();
+        await NotificationService().init();
       } catch (e) {
         debugPrint("Failed to initialize Notifications: $e");
       }
