@@ -122,15 +122,19 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       ref.read(subscriptionRepositoryProvider).addSubscription(newSub);
     }
 
-    // Bildirimler kapalıysa planlama yapma.
+    // Bildirimler kapalıysa hiç planlama yapma.
     final notificationsEnabled =
         ref.read(settingsNotifierProvider).notificationsEnabled;
 
-    // Sadece yeni/edited abonelik için bildirim planla.
-    // (Tümünü iptal edip yeniden planlamak iOS'ta bazen "hemen bildirim" gibi davranışlara yol açabiliyor.)
     if (notificationsEnabled) {
       final settings = ref.read(settingsNotifierProvider);
+
+      // Sadece bu abonelik için bildirim planla.
+      // Not: "cancelAll + tüm abonelikleri yeniden planla" yaklaşımı iOS'ta bazı cihazlarda
+      // eski/past planların tetiklenmesine sebep olup "ekler eklemez" bildirim geliyormuş gibi görüntebiliyor.
       final notifId = stableNotifId(newSub.id);
+
+      await NotificationService().cancelNotification(notifId);
 
       await NotificationService().scheduleBillingNotification(
         id: notifId,
