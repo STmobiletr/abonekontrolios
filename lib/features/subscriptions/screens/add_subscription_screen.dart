@@ -122,29 +122,29 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       ref.read(subscriptionRepositoryProvider).addSubscription(newSub);
     }
 
-    // Bildirimler kapalıysa hiç planlama yapma.
-  final notificationsEnabled =
-      ref.read(settingsNotifierProvider).notificationsEnabled;
+    // Bildirimler kapalıysa planlama yapma.
+    final notificationsEnabled =
+        ref.read(settingsNotifierProvider).notificationsEnabled;
 
-  if (notificationsEnabled) {
-    // Sadece bu aboneliğin bildirimini planla.
-    // (Tüm abonelikleri yeniden planlamak bazı cihazlarda "ekler eklemez bildirim düştü" hissi oluşturabiliyor.)
-    final settings = ref.read(settingsNotifierProvider);
-    final id = stableNotifId(newSub.id);
+    // Sadece yeni/edited abonelik için bildirim planla.
+    // (Tümünü iptal edip yeniden planlamak iOS'ta bazen "hemen bildirim" gibi davranışlara yol açabiliyor.)
+    if (notificationsEnabled) {
+      final settings = ref.read(settingsNotifierProvider);
+      final notifId = stableNotifId(newSub.id);
 
-    await NotificationService().scheduleBillingNotification(
-      id: id,
-      title: "${AppStrings.upcomingCharge}${newSub.name}",
-      body:
-          "${AppStrings.youWillBeCharged}${settings.currencySymbol}${newSub.price.toStringAsFixed(2)}. "
-          "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
-      scheduledDate: newSub.nextBillingDate,
-    );
+      await NotificationService().scheduleBillingNotification(
+        id: notifId,
+        title: "${AppStrings.upcomingCharge}${newSub.name}",
+        body:
+            "${AppStrings.youWillBeCharged}${settings.currencySymbol}${newSub.price.toStringAsFixed(2)}. "
+            "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. "
+            "${AppStrings.chargeDisclaimer}",
+        scheduledDate: newSub.nextBillingDate,
+      );
+    }
+
+    Navigator.pop(context);
   }
-
-  Navigator.pop(context);
-}
-
 
   @override
   Widget build(BuildContext context) {
