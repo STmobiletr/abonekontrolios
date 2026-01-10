@@ -66,8 +66,15 @@ class NotificationService {
         0,
       );
 
-      // If the date is in the past, don't schedule
-      if (reminderAtMorning.isBefore(DateTime.now().add(const Duration(minutes: 1)))) {
+      final now = DateTime.now();
+
+      // If billing date is in the past, don't schedule
+      if (!scheduledDate.isAfter(now)) {
+        return;
+      }
+
+      // If the reminder time is in the past/too close, don't schedule (prevents instant fire)
+      if (reminderAtMorning.isBefore(now.add(const Duration(minutes: 2)))) {
         return;
       }
 
@@ -75,7 +82,14 @@ class NotificationService {
         id,
         title,
         body,
-        tz.TZDateTime.from(reminderAtMorning, tz.local),
+        tz.TZDateTime(
+          tz.local,
+          reminderAtMorning.year,
+          reminderAtMorning.month,
+          reminderAtMorning.day,
+          reminderAtMorning.hour,
+          reminderAtMorning.minute,
+        ),
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'billing_channel',

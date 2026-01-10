@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/services/ad_service.dart';
@@ -111,6 +112,13 @@ class AboneKontrolApp extends ConsumerWidget {
     final settings = ref.watch(settingsNotifierProvider);
 
     return MaterialApp(
+      locale: const Locale('tr', 'TR'),
+      supportedLocales: const [Locale('tr', 'TR')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       title: 'SubZero Subscription Manager',
       theme: ThemeData(

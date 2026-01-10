@@ -92,6 +92,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       _cancelUrlController.text = template.cancellationUrl ?? '';
     });
   }
+
   Future<void> _saveSubscription() async {
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -120,20 +121,23 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       ref.read(subscriptionRepositoryProvider).addSubscription(newSub);
     }
 
-    final settings = ref.read(settingsNotifierProvider);
-    final notifId = stableNotifId(newSub.id);
+    // Bildirimler kapalıysa hiç planlama yapma.
+    final notificationsEnabled =
+        ref.read(settingsNotifierProvider).notificationsEnabled;
 
-    if (settings.notificationsEnabled) {
+    if (notificationsEnabled) {
+      final notifId = stableNotifId(newSub.id);
+      // Aynı ID ile eski plan kalmışsa temizle
       await NotificationService().cancelNotification(notifId);
+
       await NotificationService().scheduleBillingNotification(
         id: notifId,
         title: "${AppStrings.upcomingCharge}${newSub.name}",
-        body: "${AppStrings.youWillBeCharged}${settings.currencySymbol}${newSub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
+        body:
+            "${AppStrings.youWillBeCharged}${ref.read(settingsNotifierProvider).currencySymbol}${newSub.price.toStringAsFixed(2)}. "
+            "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
         scheduledDate: newSub.nextBillingDate,
       );
-    } else {
-      // Bildirimler kapalıysa bu aboneliğe ait eski plan varsa iptal et
-      await NotificationService().cancelNotification(notifId);
     }
 
     Navigator.pop(context);
@@ -414,6 +418,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
+                            locale: const Locale('tr', 'TR'),
                             initialDate: _nextBillingDate,
                             firstDate: DateTime.now().subtract(
                               const Duration(days: 365),
