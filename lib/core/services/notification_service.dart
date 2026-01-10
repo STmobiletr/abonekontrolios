@@ -59,25 +59,20 @@ class NotificationService {
     required DateTime scheduledDate,
   }) async {
     try {
-      // Ödeme tarihinden 1 gün önce 09:00 (tz.local)
-      final reminderDay = DateTime(
+      // Ödeme tarihinden 1 gün önce 12:00 (tz.local)
+      final tzReminder = tz.TZDateTime(
+        tz.local,
         scheduledDate.year,
         scheduledDate.month,
         scheduledDate.day,
-      ).subtract(const Duration(days: 1));
-      final tzReminder = tz.TZDateTime(
-        tz.local,
-        reminderDay.year,
-        reminderDay.month,
-        reminderDay.day,
-        9,
+        12,
         0,
-      );
+      ).subtract(const Duration(days: 1));
 
       final tzNow = tz.TZDateTime.now(tz.local);
 
       // Çok yakın/geçmiş -> asla planlama (iOS'ta anında düşme bug'ını engeller)
-      if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 5)))) {
+      if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 30)))) {
         debugPrint(
           "Skip scheduling (past/too soon). id=$id now=$tzNow reminder=$tzReminder pay=$scheduledDate",
         );
