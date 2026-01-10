@@ -123,32 +123,28 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     }
 
     // Bildirimler kapalıysa hiç planlama yapma.
-    final notificationsEnabled =
-        ref.read(settingsNotifierProvider).notificationsEnabled;
+  final notificationsEnabled =
+      ref.read(settingsNotifierProvider).notificationsEnabled;
 
-    if (notificationsEnabled) {
-      // Güvenli yöntem: tüm eski planları temizle, aboneliklerin hepsini yeniden planla.
-      // Bu, iOS'ta "abonelik ekler eklemez" anlık bildirim gelmesi (eski/past plan çakışmaları) sorununu bitirir.
-      await NotificationService().cancelAllNotifications();
+  if (notificationsEnabled) {
+    // Sadece bu aboneliğin bildirimini planla.
+    // (Tüm abonelikleri yeniden planlamak bazı cihazlarda "ekler eklemez bildirim düştü" hissi oluşturabiliyor.)
+    final settings = ref.read(settingsNotifierProvider);
+    final id = stableNotifId(newSub.id);
 
-      final settings = ref.read(settingsNotifierProvider);
-      final subsBox = Hive.box<SubscriptionModel>('subscriptions');
-
-      for (final sub in subsBox.values) {
-        final id = stableNotifId(sub.id);
-        await NotificationService().scheduleBillingNotification(
-          id: id,
-          title: "${AppStrings.upcomingCharge}${sub.name}",
-          body:
-              "${AppStrings.youWillBeCharged}${settings.currencySymbol}${sub.price.toStringAsFixed(2)}. "
-              "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
-          scheduledDate: sub.nextBillingDate,
-        );
-      }
-    }
-
-    Navigator.pop(context);
+    await NotificationService().scheduleBillingNotification(
+      id: id,
+      title: "${AppStrings.upcomingCharge}${newSub.name}",
+      body:
+          "${AppStrings.youWillBeCharged}${settings.currencySymbol}${newSub.price.toStringAsFixed(2)}. "
+          "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
+      scheduledDate: newSub.nextBillingDate,
+    );
   }
+
+  Navigator.pop(context);
+}
+
 
   @override
   Widget build(BuildContext context) {

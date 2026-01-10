@@ -52,61 +52,70 @@ class NotificationService {
   /// iOS bazen geçmiş/yanlış hesaplanan zamanlarda bildirimi "hemen" gösterebilir.
   /// Bu yüzden TZDateTime ile aynı timezone'da (tz.local) hesap yapıp,
   /// geçmişe/çok yakına düşen zamanları asla planlamıyoruz.
-  Future<void> scheduleBillingNotification({
-    required int id,
-    required String title,
-    required String body,
-    required DateTime scheduledDate,
-  }) async {
-    try {
-      // Ödeme tarihinden 1 gün önce 09:00 (tz.local)
-      final tzReminder = tz.TZDateTime(
-        tz.local,
-        scheduledDate.year,
-        scheduledDate.month,
-        scheduledDate.day,
-        9,
-        0,
-      ).subtract(const Duration(days: 1));
+/// Schedules a billing notification for a subscription.
+///
+/// `scheduledDate` = ödeme günü. Bildirim = 1 gün önce saat 09:00'da.
+/// Not: iOS bazı durumlarda geçmiş/çok yakın zamanlara planlanan bildirimleri "hemen" düşürebiliyor.
+/// Bu yüzden "en az 10 dk ileri" değilse planlamayı tamamen pas geçiyoruz.
+Future<void> scheduleBillingNotification({
+  required int id,
+  required String title,
+  required String body,
+  required DateTime scheduledDate,
+}) async {
+  try {
+    final localPayDate = scheduledDate.isUtc ? scheduledDate.toLocal() : scheduledDate;
 
-      final tzNow = tz.TZDateTime.now(tz.local);
+    // 1 gün önce 09:00
+    final reminderLocal = DateTime(
+      localPayDate.year,
+      localPayDate.month,
+      localPayDate.day,
+      9,
+      0,
+    ).subtract(const Duration(days: 1));
 
-      // Çok yakın/geçmiş -> asla planlama (iOS'ta anında düşme bug'ını engeller)
-      if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 5)))) {
-        debugPrint(
-          "Skip scheduling (past/too soon). id=$id now=$tzNow reminder=$tzReminder pay=$scheduledDate",
-        );
-        return;
-      }
+    final tzReminder = tz.TZDateTime.from(reminderLocal, tz.local);
+    final tzNow = tz.TZDateTime.now(tz.local);
 
-      // Aynı ID ile eski bir plan varsa temizle
-      await flutterLocalNotificationsPlugin.cancel(id);
-
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzReminder,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'billing_channel',
-            'Abonelik Hatırlatıcıları',
-            channelDescription:
-                'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
-            importance: Importance.max,
-            priority: Priority.high,
-            color: AppColors.primaryAccent,
-          ),
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    // Geçmiş / çok yakın -> hiç planlama yapma
+    if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 10)))) {
+      debugPrint(
+        "Skip scheduling (past/too soon). id=$id now=$tzNow reminder=$tzReminder pay=$localPayDate",
       );
-
-      debugPrint("Scheduled notification. id=$id at=$tzReminder pay=$scheduledDate");
-    } catch (e) {
-      debugPrint("Error scheduling notification: $e");
+      return;
     }
+
+    // Aynı ID varsa önce temizle (çakışma olmasın)
+    await flutterLocalNotificationsPlugin.cancel(id);
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tzReminder,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'billing_channel',
+          'Abonelik Hatırlatıcıları',
+          channelDescription:
+              'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
+          importance: Importance.max,
+          priority: Priority.high,
+          color: AppColors.primaryAccent,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+
+    debugPrint("Scheduled notification. id=$id at=$tzReminder pay=$localPayDate");
+  } catch (e) {
+    debugPrint("Error scheduling notification: $e");
   }
+}
 
   /// Cancels a specific notification
   Future<void> cancelNotification(int id) async {
