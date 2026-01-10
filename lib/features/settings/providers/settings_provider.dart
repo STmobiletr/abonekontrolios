@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/utils/stable_notif_id.dart';
 import '../../subscriptions/providers/subscription_providers.dart';
 import '../../../core/constants/app_strings.dart';
 
@@ -32,30 +33,6 @@ class SettingsState {
     bool? onboardingComplete,
     String? language,
   }) {
-
-
-// Uygulama açıldığında (bildirimler açıksa) bir kez tüm bildirimleri temizleyip yeniden planla.
-// Bu, eski sürümlerden kalmış "hemen gelen" bildirimleri temizler.
-if (notificationsEnabled && !_bootNotificationSyncDone) {
-  _bootNotificationSyncDone = true;
-  Future.microtask(() async {
-    try {
-      await NotificationService().cancelAllNotifications();
-      final subscriptions =
-          ref.read(subscriptionRepositoryProvider).getSubscriptions();
-      for (final sub in subscriptions) {
-        await NotificationService().scheduleBillingNotification(
-          id: sub.id.hashCode,
-          title: "${AppStrings.upcomingCharge}${sub.name}",
-          body:
-              "${AppStrings.youWillBeCharged}₺${sub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
-          scheduledDate: sub.nextBillingDate,
-        );
-      }
-    } catch (_) {}
-  });
-}
-
     return SettingsState(
       isDarkMode: isDarkMode ?? this.isDarkMode,
       currency: currency ?? this.currency,
@@ -71,9 +48,7 @@ if (notificationsEnabled && !_bootNotificationSyncDone) {
 class SettingsNotifier extends _$SettingsNotifier {
   late Box _box;
 
-  
-  bool _bootNotificationSyncDone = false;
-@override
+  @override
   SettingsState build() {
     _box = Hive.box('settings');
 
@@ -135,15 +110,17 @@ class SettingsNotifier extends _$SettingsNotifier {
     if (!isEnabled) {
       await NotificationService().cancelAllNotifications();
     } else {
-      await NotificationService().cancelAllNotifications();
       final subscriptions = ref
           .read(subscriptionRepositoryProvider)
           .getSubscriptions();
       for (final sub in subscriptions) {
+        final notifId = stableNotifId(sub.id);
+        await NotificationService().cancelNotification(notifId);
         await NotificationService().scheduleBillingNotification(
-          id: sub.id.hashCode,
+          id: notifId,
           title: "${AppStrings.upcomingCharge}${sub.name}",
-          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. ${AppStrings.chargeDisclaimer}",
+          body: "${AppStrings.youWillBeCharged}${state.currencySymbol}${sub.price.toStringAsFixed(2)}. "
+              "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
           scheduledDate: sub.nextBillingDate,
         );
       }

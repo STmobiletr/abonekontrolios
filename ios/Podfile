@@ -1,4 +1,3 @@
-# Define the global platform for your project
 platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
@@ -36,20 +35,24 @@ target 'Runner' do
   end
 end
 
-# IMPORTANT:
-# webview_flutter_wkwebview 3.23.x removed code paths for iOS < 13, and uses iOS 13+ WebKit APIs.
-# Some pods still end up with a lower deployment target from their podspec, causing Swift compile errors.
-# We force every pod target to iOS 13.0 AFTER Flutter adds its build settings.
 post_install do |installer|
+  # Flutter's standard iOS build settings
   installer.pods_project.targets.each do |target|
-    # Apply Flutter's additional settings first
-    if defined?(flutter_additional_ios_build_settings)
-      flutter_additional_ios_build_settings(target)
-    end
+    flutter_additional_ios_build_settings(target)
+  end
 
-    # Then force iOS 13 for the pod target
+  # Prevent Flutter tooling from "Upgrading Podfile" on CI.
+  # (Added in newer Flutter templates.)
+  flutter_post_install(installer) if defined?(flutter_post_install)
+
+  # webview_flutter_wkwebview 3.23.x removed code for iOS < 13, so enforce iOS 13 for all pods.
+  installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
+  end
+
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
   end
 end

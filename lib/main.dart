@@ -6,6 +6,8 @@ import 'core/services/ad_service.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'core/services/notification_service.dart';
+import 'core/utils/stable_notif_id.dart';
+import 'core/constants/app_strings.dart';
 import 'core/constants/app_colors.dart';
 import 'features/subscriptions/models/subscription_model.dart';
 import 'features/settings/providers/settings_provider.dart';
@@ -55,6 +57,33 @@ void main() async {
         await NotificationService().init();
       } catch (e) {
         debugPrint("Failed to initialize Notifications: $e");
+      }
+
+
+      // Bildirimler açıksa: eski planları temizle ve mevcut aboneliklere göre yeniden planla
+      try {
+        final settingsBox = Hive.box('settings');
+        final bool notificationsEnabled =
+            settingsBox.get('notificationsEnabled', defaultValue: true) as bool? ?? true;
+
+        if (notificationsEnabled) {
+          await NotificationService().cancelAllNotifications();
+
+          final subsBox = Hive.box<SubscriptionModel>('subscriptions');
+          for (final sub in subsBox.values) {
+            final notifId = stableNotifId(sub.id);
+            await NotificationService().scheduleBillingNotification(
+              id: notifId,
+              title: "${AppStrings.upcomingCharge}${sub.name}",
+              body:
+                  "${AppStrings.youWillBeCharged}₺${sub.price.toStringAsFixed(2)}. "
+                  "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
+              scheduledDate: sub.nextBillingDate,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint("Failed to reschedule notifications: $e");
       }
 
       // Run App

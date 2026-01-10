@@ -10,6 +10,7 @@ import '../../../core/constants/app_colors.dart';
 import '../models/subscription_model.dart';
 import '../providers/subscription_providers.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/utils/stable_notif_id.dart';
 import '../../settings/providers/settings_provider.dart';
 
 /// Screen to add or edit a subscription
@@ -125,7 +126,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
         ref.read(settingsNotifierProvider).notificationsEnabled;
 
     if (notificationsEnabled) {
-      final notifId = newSub.id.hashCode;
+      final notifId = stableNotifId(newSub.id);
       // Aynı ID ile eski plan kalmışsa temizle
       await NotificationService().cancelNotification(notifId);
 
