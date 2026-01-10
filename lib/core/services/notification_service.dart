@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
 import '../constants/app_colors.dart';
 
 /// Service for handling local notifications
@@ -13,12 +15,16 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  bool _initialized = false;
+
   Future<void> init() async {
+    if (_initialized) return;
+
     // Initialize Timezone Database
     tz.initializeTimeZones();
 
-    // Uygulama TR odaklı olduğu için yerel zamanı İstanbul olarak sabitliyoruz.
-    // (Cihaz farklı bir bölgedeyse bile saat kayması/"hemen bildirim" sorununu azaltır.)
+    // TR odaklı: yerel zamanı İstanbul olarak sabitle.
+    // (Cihaz farklı bir bölgedeyse bile saat kayması/"hemen bildirim" riskini azaltır.)
     try {
       tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
     } catch (_) {
@@ -37,16 +43,18 @@ class NotificationService {
           requestAlertPermission: true,
         );
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsDarwin,
-        );
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+    );
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    _initialized = true;
   }
 
   /// Schedules a billing reminder notification
+  /// - Reminder time: 1 day before the billing date at 09:00 (local)
+  /// - If reminder time is in the past / too close, it will NOT schedule (prevents instant firing).
   Future<void> scheduleBillingNotification({
     required int id,
     required String title,
@@ -54,11 +62,22 @@ class NotificationService {
     required DateTime scheduledDate,
   }) async {
     try {
-      // Calculate 1 day before the billing date
-      final reminderDate = scheduledDate.subtract(const Duration(days: 1));
+      // Always cancel existing with same id to avoid collisions.
+      await flutterLocalNotificationsPlugin.cancel(id);
 
-      // Tarih seçiciden gelen saat genelde 00:00 oluyor. Hatırlatmayı sabah 09:00'a çekiyoruz.
-      final reminderAtMorning = DateTime(
+      // Normalize scheduledDate to date-only to avoid timezone/UTC drift.
+      final paymentDateLocal = DateTime(
+        scheduledDate.year,
+        scheduledDate.month,
+        scheduledDate.day,
+      );
+
+      // Calculate 1 day before the billing date
+      final reminderDate = paymentDateLocal.subtract(const Duration(days: 1));
+
+      // Reminder at 09:00 local time
+      final reminderTz = tz.TZDateTime(
+        tz.local,
         reminderDate.year,
         reminderDate.month,
         reminderDate.day,
@@ -66,42 +85,48 @@ class NotificationService {
         0,
       );
 
-      final now = DateTime.now();
+      final nowTz = tz.TZDateTime.now(tz.local);
 
-      // If billing date is in the past, don't schedule
-      if (!scheduledDate.isAfter(now)) {
+      // If reminder time is in the past or too close, don't schedule.
+      // (iOS can fire immediately when scheduled in the past)
+      if (!reminderTz.isAfter(nowTz.add(const Duration(minutes: 2)))) {
+        if (kDebugMode) {
+          debugPrint(
+            "Notification skipped (too close/past). id=$id reminder=$reminderTz now=$nowTz payment=$paymentDateLocal",
+          );
+        }
         return;
       }
 
-      // If the reminder time is in the past/too close, don't schedule (prevents instant fire)
-      if (reminderAtMorning.isBefore(now.add(const Duration(minutes: 2)))) {
-        return;
+      if (kDebugMode) {
+        debugPrint(
+          "Notification scheduled. id=$id reminder=$reminderTz payment=$paymentDateLocal tz=${tz.local.name}",
+        );
       }
 
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
-        tz.TZDateTime(
-          tz.local,
-          reminderAtMorning.year,
-          reminderAtMorning.month,
-          reminderAtMorning.day,
-          reminderAtMorning.hour,
-          reminderAtMorning.minute,
-        ),
+        reminderTz,
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'billing_channel',
             'Abonelik Hatırlatıcıları',
-            channelDescription: 'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
+            channelDescription:
+                'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
             importance: Importance.max,
             priority: Priority.high,
             color: AppColors.primaryAccent,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentSound: true,
+            presentBadge: true,
+          ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        // Do not set matchDateTimeComponents here; we want a single fire.
       );
     } catch (e) {
       debugPrint("Error scheduling notification: $e");
