@@ -127,32 +127,24 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
         ref.read(settingsNotifierProvider).notificationsEnabled;
 
     if (notificationsEnabled) {
-
+      // Sadece eklenen/düzenlenen abonelik için bildirim planla.
+      // (Tüm bildirimleri cancelAll + tekrar schedule etmek iOS'ta "hemen bildirim" algısını tetikleyebiliyor.)
       final settings = ref.read(settingsNotifierProvider);
 
       final notifId = stableNotifId(newSub.id);
-
       await NotificationService().cancelNotification(notifId);
 
       await NotificationService().scheduleBillingNotification(
-
         id: notifId,
-
         title: "${AppStrings.upcomingCharge}${newSub.name}",
-
         body:
-
             "${AppStrings.youWillBeCharged}${settings.currencySymbol}${newSub.price.toStringAsFixed(2)}. "
-
             "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
-
         scheduledDate: newSub.nextBillingDate,
-
       );
-
     }
 
-Navigator.pop(context);
+    Navigator.pop(context);
   }
 
   @override

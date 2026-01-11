@@ -61,31 +61,10 @@ void main() async {
       }
 
 
-      // Bildirimler açıksa: eski planları temizle ve mevcut aboneliklere göre yeniden planla
-      try {
-        final settingsBox = Hive.box('settings');
-        final bool notificationsEnabled =
-            settingsBox.get('notificationsEnabled', defaultValue: true) as bool? ?? true;
+      // Not: Bildirim planları cihazda kalıcıdır.
+      // Uygulama açılışında cancelAll + yeniden planlama yapmak iOS'ta anlık/yanlış bildirim algısına yol açabiliyor.
+      // Bildirimler sadece abonelik ekle/düzenle veya ayarlardan aç/kapa yapınca planlanır.
 
-        if (notificationsEnabled) {
-          await NotificationService().cancelAllNotifications();
-
-          final subsBox = Hive.box<SubscriptionModel>('subscriptions');
-          for (final sub in subsBox.values) {
-            final notifId = stableNotifId(sub.id);
-            await NotificationService().scheduleBillingNotification(
-              id: notifId,
-              title: "${AppStrings.upcomingCharge}${sub.name}",
-              body:
-                  "${AppStrings.youWillBeCharged}₺${sub.price.toStringAsFixed(2)}. "
-                  "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
-              scheduledDate: sub.nextBillingDate,
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint("Failed to reschedule notifications: $e");
-      }
 
       // Run App
       runApp(const ProviderScope(child: AboneKontrolApp()));

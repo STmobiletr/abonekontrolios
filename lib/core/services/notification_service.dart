@@ -47,7 +47,7 @@ class NotificationService {
   }
 
     /// Schedules a billing reminder notification
-  /// Hatırlatma: ödeme tarihinden 1 gün önce, sabah 09:00.
+  /// Hatırlatma: ödeme tarihinden 1 gün önce, sabah 12:00.
   ///
   /// iOS bazen geçmiş/yanlış hesaplanan zamanlarda bildirimi "hemen" gösterebilir.
   /// Bu yüzden TZDateTime ile aynı timezone'da (tz.local) hesap yapıp,
@@ -59,7 +59,7 @@ class NotificationService {
     required DateTime scheduledDate,
   }) async {
     try {
-      // Ödeme tarihinden 1 gün önce 12:00 (tz.local)
+      // Ödeme tarihinden 1 gün önce 09:00 (tz.local)
       final tzReminder = tz.TZDateTime(
         tz.local,
         scheduledDate.year,
@@ -97,7 +97,7 @@ class NotificationService {
             priority: Priority.high,
             color: AppColors.primaryAccent,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true, presentBadge: true),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );

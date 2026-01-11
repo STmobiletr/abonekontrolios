@@ -1,167 +1,125 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../../../core/services/notification_service.dart';
+import 'package:hive/hive.dart';
 import '../../../core/ui/glass_box.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_strings.dart';
+import '../../subscriptions/models/subscription_model.dart';
 
-/// Screen to display scheduled notifications
-class NotificationScreen extends StatefulWidget {
+/// Bildirimler ekranı
+///
+/// Bu ekran iOS/Android sistem bildirim geçmişini değil,
+/// "1 gün sonra ödeme var" koşulunu sağlayan abonelikleri gösterir.
+///
+/// Böylece:
+/// - Abonelik ekler eklemez "bildirim var" gibi görünmez
+/// - Uygulamadan çıkınca liste kaybolmaz (Hive'dan okunur)
+class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
-  @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
-}
-
-class _NotificationScreenState extends State<NotificationScreen> {
-  List<PendingNotificationRequest> _pendingNotifications = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotifications();
-  }
-
-  Future<void> _loadNotifications() async {
-    final notifications = await NotificationService()
-        .flutterLocalNotificationsPlugin
-        .pendingNotificationRequests();
-    setState(() {
-      _pendingNotifications = notifications;
-      _isLoading = false;
-    });
+  int _daysBetweenDateOnly(DateTime a, DateTime b) {
+    final da = DateTime(a.year, a.month, a.day);
+    final db = DateTime(b.year, b.month, b.day);
+    return db.difference(da).inDays;
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor =
-        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final box = Hive.box<SubscriptionModel>('subscriptions');
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new, color: textColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Bildirimler",
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(AppStrings.notifications),
+      ),
+      body: ValueListenableBuilder(
+        valueListenable: box.listenable(),
+        builder: (context, Box<SubscriptionModel> box, _) {
+          final now = DateTime.now();
 
-            // List
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _pendingNotifications.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.notifications_off_outlined,
-                            size: 64,
-                            color: textColor.withOpacity(0.3),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            "Planlanan bildirim yok",
-                            style: TextStyle(
-                              color: textColor.withOpacity(0.5),
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+          final upcoming = box.values.where((sub) {
+            final days = _daysBetweenDateOnly(now, sub.nextBillingDate);
+            return days == 1; // sadece 1 gün kala
+          }).toList()
+            ..sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
+
+          if (upcoming.isEmpty) {
+            return Center(
+              child: Text(
+                'Henüz yaklaşan bildirim yok.',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontSize: 16,
+                ),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: upcoming.length,
+            itemBuilder: (context, index) {
+              final sub = upcoming[index];
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: GlassBox(
+                  borderRadius: 16,
+                  color: isDark
+                      ? AppColors.glassDarkTint.withOpacity(0.05)
+                      : AppColors.glassLightTint.withOpacity(0.05),
+                  borderColor:
+                      isDark ? AppColors.darkGlassBorder : AppColors.lightGlassBorder,
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryAccent.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.notifications_active,
+                          color: AppColors.primaryAccent,
+                        ),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: _pendingNotifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = _pendingNotifications[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: GlassBox(
-                            borderRadius: 16,
-                            color: isDark
-                                ? AppColors.glassDarkTint.withOpacity(0.05)
-                                : AppColors.glassLightTint.withOpacity(0.05),
-                            borderColor: isDark
-                                ? AppColors.darkGlassBorder
-                                : AppColors.lightGlassBorder,
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? AppColors.primaryAccent.withOpacity(
-                                            0.1,
-                                          )
-                                        : AppColors.lightPrimary.withOpacity(
-                                            0.1,
-                                          ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.notifications_active,
-                                    color: isDark
-                                        ? AppColors.primaryAccent
-                                        : AppColors.lightPrimary,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        notification.title ?? "Notification",
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        notification.body ?? "",
-                                        style: TextStyle(
-                                          color: textColor.withOpacity(0.7),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${AppStrings.upcomingCharge}${sub.name}',
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${AppStrings.youWillBeCharged}₺${sub.price.toStringAsFixed(2)}. '
+                              'Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. '
+                              '${AppStrings.chargeDisclaimer}',
+                              style: TextStyle(
+                                color: isDark ? Colors.white70 : Colors.black54,
+                                fontSize: 13,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
