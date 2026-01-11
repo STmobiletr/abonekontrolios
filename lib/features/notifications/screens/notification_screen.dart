@@ -3,9 +3,9 @@ import 'package:hive/hive.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
-import '../../../core/services/notification_service.dart';
 import '../../../core/ui/glass_box.dart';
 import '../../subscriptions/models/subscription_model.dart';
+import '../../../core/services/notification_service.dart';
 
 /// Bildirimler ekranı.
 ///
@@ -50,40 +50,37 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return '${s.currency} ${s.price.toStringAsFixed(2)}';
   }
 
+Future<void> _clearScheduledNotifications() async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Bildirimleri temizle'),
+      content: const Text(
+        'Telefonunuza planlanan bildirimler temizlenecek. Abonelikler silinmez.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Vazgeç'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Temizle'),
+        ),
+      ],
+    ),
+  );
 
-  Future<void> _clearScheduledNotifications() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Bildirimleri temizle'),
-          content: const Text(
-            'Telefonunuza planlanan bildirimler temizlenecek. '
-            'Abonelikleriniz silinmez.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Vazgeç'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Temizle'),
-            ),
-          ],
-        );
-      },
-    );
+  if (confirmed != true) return;
 
-    if (confirmed != true) return;
+  await NotificationService().cancelAllNotifications();
 
-    await NotificationService().cancelAllNotifications();
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+  );
+}
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -220,19 +217,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 },
               ),
             ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _clearScheduledNotifications,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Bildirimleri temizle'),
-                ),
-              ),
-            ),
-
           ],
         ),
       ),
