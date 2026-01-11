@@ -43,6 +43,7 @@ void main() async {
         try {
           await Hive.openBox<SubscriptionModel>('subscriptions');
           await Hive.openBox('settings');
+          await Hive.openBox('notification_dismissals');
         } catch (e) {
           debugPrint("Error opening Hive box: $e");
           // Delete corrupted box and restart
