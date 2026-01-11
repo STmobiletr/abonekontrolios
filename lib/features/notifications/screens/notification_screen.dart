@@ -3,9 +3,9 @@ import 'package:hive/hive.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/ui/glass_box.dart';
 import '../../subscriptions/models/subscription_model.dart';
-import '../../../core/services/notification_service.dart';
 
 /// Bildirimler ekranı.
 ///
@@ -22,6 +22,8 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  bool _clearing = false;
+  bool _clearedOnce = false;
 
   @override
   void initState() {
@@ -50,37 +52,49 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return '${s.currency} ${s.price.toStringAsFixed(2)}';
   }
 
-Future<void> _clearScheduledNotifications() async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Bildirimleri temizle'),
-      content: const Text(
-        'Telefonunuza planlanan bildirimler temizlenecek. Abonelikler silinmez.',
+  Future<void> _clearScheduledNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Telefon bildirimlerini temizle'),
+        content: const Text(
+          'Telefonunuza planlanan/gösterilen bildirimler temizlenecek. Abonelikler silinmez.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Temizle'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Vazgeç'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Temizle'),
-        ),
-      ],
-    ),
-  );
+    );
 
-  if (confirmed != true) return;
+    if (confirmed != true) return;
 
-  await NotificationService().cancelAllNotifications();
+    setState(() {
+      _clearing = true;
+    });
 
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
-  );
-}
-
+    try {
+      await NotificationService().cancelAllNotifications();
+      if (!mounted) return;
+      setState(() {
+        _clearedOnce = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Telefon bildirimleri temizlendi')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _clearing = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +128,40 @@ Future<void> _clearScheduledNotifications() async {
                 ],
               ),
             ),
+
+            if (_clearedOnce)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: GlassBox(
+                  borderRadius: 14,
+                  color: isDark
+                      ? AppColors.glassDarkTint.withOpacity(0.04)
+                      : AppColors.glassLightTint.withOpacity(0.04),
+                  borderColor: isDark
+                      ? AppColors.darkGlassBorder
+                      : AppColors.lightGlassBorder,
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: textColor.withOpacity(0.7),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Bu ekran, ödeme tarihine 1 gün kalan abonelikleri gösterir. Temizleme işlemi sadece telefon bildirimlerini siler.',
+                          style: TextStyle(
+                            color: textColor.withOpacity(0.75),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             Expanded(
               child: StreamBuilder<BoxEvent>(
@@ -215,6 +263,24 @@ Future<void> _clearScheduledNotifications() async {
                     },
                   );
                 },
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _clearing ? null : _clearScheduledNotifications,
+                  icon: _clearing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                  label: Text(_clearing ? 'Temizleniyor...' : 'Telefon bildirimlerini temizle'),
+                ),
               ),
             ),
           ],
