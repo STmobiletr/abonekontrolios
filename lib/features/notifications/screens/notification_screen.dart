@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
@@ -85,7 +85,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.cancelAllScheduledNotifications();
+    await notificationService.cancelAllNotifications();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
