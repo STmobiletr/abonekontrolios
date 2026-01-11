@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/ui/glass_box.dart';
+import '../../../core/utils/stable_notif_id.dart';
 import '../../subscriptions/models/subscription_model.dart';
 import '../../../core/services/notification_service.dart';
 
@@ -22,11 +23,13 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  Set<int> _pendingNotificationIds = {};
 
   @override
   void initState() {
     super.initState();
     _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
+    _refreshPendingNotifications();
   }
 
   int _daysUntil(DateTime targetDate) {
@@ -37,8 +40,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   List<SubscriptionModel> _dueInOneDay() {
+    if (_pendingNotificationIds.isEmpty) {
+      return [];
+    }
     final items = _subscriptionsBox.values
-        .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .where((s) =>
+            _daysUntil(s.nextBillingDate) == 1 &&
+            _pendingNotificationIds.contains(stableNotifId(s.id)))
         .toList();
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
@@ -50,36 +58,50 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return '${s.currency} ${s.price.toStringAsFixed(2)}';
   }
 
-Future<void> _clearScheduledNotifications() async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Bildirimleri temizle'),
-      content: const Text(
-        'Telefonunuza planlanan bildirimler temizlenecek. Abonelikler silinmez.',
+  Future<void> _refreshPendingNotifications() async {
+    final notificationService = NotificationService();
+    await notificationService.init();
+    final pendingIds = await notificationService.pendingNotificationIds();
+    if (!mounted) return;
+    setState(() {
+      _pendingNotificationIds = pendingIds;
+    });
+  }
+
+  Future<void> _clearScheduledNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bildirimleri temizle'),
+        content: const Text(
+          'Telefonunuza planlanan bildirimler temizlenecek. '
+          'Abonelikler silinmez.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Temizle'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Vazgeç'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Temizle'),
-        ),
-      ],
-    ),
-  );
+    );
 
-  if (confirmed != true) return;
+    if (confirmed != true) return;
 
-  await NotificationService().cancelAllNotifications();
+    final notificationService = NotificationService();
+    await notificationService.init();
+    await notificationService.cancelAllScheduledNotifications();
+    await _refreshPendingNotifications();
 
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
-  );
-}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+    );
+  }
 
 
   @override
@@ -215,6 +237,18 @@ Future<void> _clearScheduledNotifications() async {
                     },
                   );
                 },
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _clearScheduledNotifications,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Bildirimleri temizle'),
+                ),
               ),
             ),
           ],

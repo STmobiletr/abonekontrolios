@@ -107,4 +107,22 @@ class NotificationService {
   Future<void> cancelAllNotifications() async {
     await flutterLocalNotificationsPlugin.cancelAll();
   }
+
+  /// Returns all pending notification IDs.
+  Future<Set<int>> pendingNotificationIds() async {
+    final pending =
+        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    return pending.map((request) => request.id).toSet();
+  }
+
+  /// Cancels all scheduled notifications and returns how many were pending.
+  Future<int> cancelAllScheduledNotifications() async {
+    final pending =
+        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    for (final request in pending) {
+      await flutterLocalNotificationsPlugin.cancel(request.id);
+    }
+    await flutterLocalNotificationsPlugin.cancelAll();
+    return pending.length;
+  }
 }
