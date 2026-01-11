@@ -32,7 +32,8 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
 
   Color _selectedColor = Colors.blue;
   String _billingCycle = AppStrings.monthlyValue;
-  DateTime _nextBillingDate = DateTime.now().add(const Duration(days: 30));
+  late DateTime _nextBillingDate;
+  bool _dateManuallyPicked = false;
   String _selectedCategory = 'Eğlence';
   final List<String> _categories = [
     'Eğlence',
@@ -74,6 +75,11 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       }
       _nextBillingDate = widget.subscription!.nextBillingDate;
       _selectedCategory = widget.subscription!.category;
+      _dateManuallyPicked = true;
+    } else {
+      // Yeni abonelik: varsayılan olarak 1 ay sonrası aynı gün
+      _nextBillingDate = _addMonthsClamped(DateTime.now(), 1);
+      _dateManuallyPicked = false;
     }
   }
 
@@ -83,6 +89,17 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     _priceController.dispose();
     _cancelUrlController.dispose();
     super.dispose();
+  }
+
+  DateTime _addMonthsClamped(DateTime date, int months) {
+    // Saat farkı/UTC kayması olmaması için günü sabitle
+    final d = DateTime(date.year, date.month, date.day);
+    final targetMonthStart = DateTime(d.year, d.month + months, 1);
+    final lastDayOfTargetMonth =
+        DateTime(targetMonthStart.year, targetMonthStart.month + 1, 0).day;
+
+    final safeDay = d.day > lastDayOfTargetMonth ? lastDayOfTargetMonth : d.day;
+    return DateTime(targetMonthStart.year, targetMonthStart.month, safeDay);
   }
 
   void _applyTemplate(SubscriptionTemplate template) {
@@ -453,7 +470,10 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
                             },
                           );
                           if (picked != null) {
-                            setState(() => _nextBillingDate = picked);
+                            setState(() {
+                            _nextBillingDate = DateTime(picked.year, picked.month, picked.day);
+                            _dateManuallyPicked = true;
+                          });
                           }
                         },
                         child: Text(
