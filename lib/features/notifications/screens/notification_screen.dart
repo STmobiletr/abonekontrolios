@@ -131,109 +131,102 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
 
             Expanded(
-              child: ValueListenableBuilder(
-                valueListenable: _dismissalsBox.listenable(),
-                builder: (context, _, __) {
-                  return StreamBuilder<BoxEvent>(
-                    stream: _subscriptionsBox.watch(),
-                    builder: (context, __) {
-                      final due = _dueInOneDay();
+              child: StreamBuilder<BoxEvent>(
+                stream: _subscriptionsBox.watch(),
+                builder: (context, __) {
+                  final due = _dueInOneDay();
 
-                      if (due.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                  if (due.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 64,
+                            color: textColor.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '1 gün kalan ödeme yok',
+                            style: TextStyle(
+                              color: textColor.withOpacity(0.5),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: due.length,
+                    itemBuilder: (context, index) {
+                      final sub = due[index];
+                      final title = '${AppStrings.upcomingCharge}${sub.name}';
+                      final body =
+                          '${AppStrings.youWillBeCharged}${_formatMoney(sub)}. '
+                          'Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. '
+                          '${AppStrings.chargeDisclaimer}';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: GlassBox(
+                          borderRadius: 16,
+                          color: isDark
+                              ? AppColors.glassDarkTint.withOpacity(0.05)
+                              : AppColors.glassLightTint.withOpacity(0.05),
+                          borderColor: isDark
+                              ? AppColors.darkGlassBorder
+                              : AppColors.lightGlassBorder,
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
                             children: [
-                              Icon(
-                                Icons.notifications_off_outlined,
-                                size: 64,
-                                color: textColor.withOpacity(0.3),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.primaryAccent
+                                          .withOpacity(0.1)
+                                      : AppColors.lightPrimary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.notifications_active,
+                                  color: isDark
+                                      ? AppColors.primaryAccent
+                                      : AppColors.lightPrimary,
+                                  size: 24,
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                '1 gün kalan ödeme yok',
-                                style: TextStyle(
-                                  color: textColor.withOpacity(0.5),
-                                  fontSize: 16,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      title,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      body,
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.7),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: due.length,
-                        itemBuilder: (context, index) {
-                          final sub = due[index];
-                          final title = '${AppStrings.upcomingCharge}${sub.name}';
-                          final body =
-                              '${AppStrings.youWillBeCharged}${_formatMoney(sub)}. '
-                              'Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. '
-                              '${AppStrings.chargeDisclaimer}';
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: GlassBox(
-                              borderRadius: 16,
-                              color: isDark
-                                  ? AppColors.glassDarkTint.withOpacity(0.05)
-                                  : AppColors.glassLightTint.withOpacity(0.05),
-                              borderColor: isDark
-                                  ? AppColors.darkGlassBorder
-                                  : AppColors.lightGlassBorder,
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? AppColors.primaryAccent
-                                              .withOpacity(0.1)
-                                          : AppColors.lightPrimary
-                                              .withOpacity(0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.notifications_active,
-                                      color: isDark
-                                          ? AppColors.primaryAccent
-                                          : AppColors.lightPrimary,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          title,
-                                          style: TextStyle(
-                                            color: textColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          body,
-                                          style: TextStyle(
-                                            color: textColor.withOpacity(0.7),
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                        ),
                       );
                     },
                   );
