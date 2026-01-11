@@ -220,6 +220,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 },
               ),
             ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _clearScheduledNotifications,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Bildirimleri temizle'),
+                ),
+              ),
+            ),
+
           ],
         ),
       ),
