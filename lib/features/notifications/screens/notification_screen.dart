@@ -74,14 +74,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     if (confirmed != true) return;
 
-    await NotificationService().cancelAllNotifications();
+    final notificationService = NotificationService();
+    await notificationService.init();
+    await notificationService.cancelAllNotifications();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
