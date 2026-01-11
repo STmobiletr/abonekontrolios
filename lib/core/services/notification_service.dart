@@ -46,12 +46,7 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-    /// Schedules a billing reminder notification
-  /// Hatırlatma: ödeme tarihinden 1 gün önce, sabah 09:00.
-  ///
-  /// iOS bazen geçmiş/yanlış hesaplanan zamanlarda bildirimi "hemen" gösterebilir.
-  /// Bu yüzden TZDateTime ile aynı timezone'da (tz.local) hesap yapıp,
-  /// geçmişe/çok yakına düşen zamanları asla planlamıyoruz.
+  /// Schedules a billing reminder notification
   Future<void> scheduleBillingNotification({
     required int id,
     required String title,
@@ -59,50 +54,45 @@ class NotificationService {
     required DateTime scheduledDate,
   }) async {
     try {
-      // Ödeme tarihinden 1 gün önce 09:00 (tz.local)
-      final tzReminder = tz.TZDateTime(
-        tz.local,
-        scheduledDate.year,
-        scheduledDate.month,
-        scheduledDate.day,
+      // Calculate 1 day before the billing date
+      final reminderDate = scheduledDate.subtract(const Duration(days: 1));
+
+      // Tarih seçiciden gelen saat genelde 00:00 oluyor. Hatırlatmayı sabah 09:00'a çekiyoruz.
+      final reminderAtMorning = DateTime(
+        reminderDate.year,
+        reminderDate.month,
+        reminderDate.day,
         9,
         0,
-      ).subtract(const Duration(days: 1));
+      );
 
-      final tzNow = tz.TZDateTime.now(tz.local);
-
-      // Çok yakın/geçmiş -> asla planlama (iOS'ta anında düşme bug'ını engeller)
-      if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 5)))) {
-        debugPrint(
-          "Skip scheduling (past/too soon). id=$id now=$tzNow reminder=$tzReminder pay=$scheduledDate",
-        );
+      // If the date is in the past, don't schedule
+      if (reminderAtMorning.isBefore(DateTime.now().add(const Duration(minutes: 1)))) {
         return;
       }
-
-      // Aynı ID ile eski bir plan varsa temizle
-      await flutterLocalNotificationsPlugin.cancel(id);
 
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
-        tzReminder,
+        tz.TZDateTime.from(reminderAtMorning, tz.local),
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'billing_channel',
             'Abonelik Hatırlatıcıları',
-            channelDescription:
-                'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
+            channelDescription: 'Aboneliğinizin ödeme tarihinden 1 gün önce sizi bilgilendirir',
             importance: Importance.max,
             priority: Priority.high,
             color: AppColors.primaryAccent,
           ),
-          iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true, presentBadge: true),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentSound: true,
+            presentBadge: true,
+          ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
-
-      debugPrint("Scheduled notification. id=$id at=$tzReminder pay=$scheduledDate");
     } catch (e) {
       debugPrint("Error scheduling notification: $e");
     }

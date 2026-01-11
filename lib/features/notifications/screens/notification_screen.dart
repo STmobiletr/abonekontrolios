@@ -3,14 +3,16 @@ import 'package:hive/hive.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/ui/glass_box.dart';
 import '../../subscriptions/models/subscription_model.dart';
 
-/// Bildirimler ekranı:
-/// - Artık "pending scheduled notifications" listesini göstermiyor.
-/// - Sadece ödeme tarihine **1 gün kalan** abonelikleri gösteriyor.
+/// Bildirimler ekranı.
 ///
-/// Böylece abonelik eklerken "hemen bildirim geldi" gibi görünen problem bitiyor.
+/// Bu ekran, cihazın bildirim merkezine düşen "geçmiş" bildirimleri listelemez.
+/// Kullanıcının isteğine göre sadece "ödeme tarihine 1 gün kalan" abonelikleri
+/// gösterir. Böylece abonelik ekler eklemez yanlış bir şekilde "1 gün kaldı"
+/// mesajı görünmez.
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -19,31 +21,82 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  late final Box<SubscriptionModel> _box;
+  late final Box<SubscriptionModel> _subscriptionsBox;
 
   @override
   void initState() {
     super.initState();
-    _box = Hive.box<SubscriptionModel>('subscriptions');
+    _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
   }
 
-  bool _isOneDayBefore(DateTime billingDate) {
+  int _daysUntil(DateTime targetDate) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(billingDate.year, billingDate.month, billingDate.day);
-    return target.difference(today).inDays == 1;
+    final target = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    return target.difference(today).inDays;
+  }
+
+  List<SubscriptionModel> _dueInOneDay() {
+    final items = _subscriptionsBox.values
+        .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .toList();
+    items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
+    return items;
+  }
+
+  String _formatMoney(SubscriptionModel s) {
+    // Uygulama genelinde bu format yeterli; daha sonra istersen para formatını
+    // locale'e göre iyileştiririz.
+    return '${s.currency} ${s.price.toStringAsFixed(2)}';
+  }
+
+
+  Future<void> _clearScheduledNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Bildirimleri temizle'),
+          content: const Text(
+            'Telefonunuza planlanan bildirimler temizlenecek. '
+            'Abonelikleriniz silinmez.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Vazgeç'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Temizle'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    await NotificationService().cancelAllNotifications();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.black;
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
@@ -54,7 +107,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    AppStrings.notifications,
+                    'Bildirimler',
                     style: TextStyle(
                       color: textColor,
                       fontSize: 24,
@@ -67,79 +120,98 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
             Expanded(
               child: StreamBuilder<BoxEvent>(
-                stream: _box.watch(),
+                stream: _subscriptionsBox.watch(),
                 builder: (context, _) {
-                  final due = _box.values.where((s) => _isOneDayBefore(s.nextBillingDate)).toList()
-                    ..sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
+                  final due = _dueInOneDay();
 
                   if (due.isEmpty) {
                     return Center(
-                      child: Text(
-                        "Şu an 1 gün kala ödeme yok.",
-                        style: TextStyle(
-                          color: textColor.withOpacity(0.7),
-                          fontSize: 16,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 64,
+                            color: textColor.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '1 gün kalan ödeme yok',
+                            style: TextStyle(
+                              color: textColor.withOpacity(0.5),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.all(20),
                     itemCount: due.length,
                     itemBuilder: (context, index) {
                       final sub = due[index];
+                      final title = '${AppStrings.upcomingCharge}${sub.name}';
+                      final body =
+                          '${AppStrings.youWillBeCharged}${_formatMoney(sub)}. '
+                          'Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. '
+                          '${AppStrings.chargeDisclaimer}';
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
                         child: GlassBox(
                           borderRadius: 16,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.primaryAccent.withOpacity(0.15),
-                                  ),
-                                  child: const Icon(
-                                    Icons.notifications_active,
-                                    color: AppColors.primaryAccent,
-                                  ),
+                          color: isDark
+                              ? AppColors.glassDarkTint.withOpacity(0.05)
+                              : AppColors.glassLightTint.withOpacity(0.05),
+                          borderColor: isDark
+                              ? AppColors.darkGlassBorder
+                              : AppColors.lightGlassBorder,
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.primaryAccent.withOpacity(0.1)
+                                      : AppColors.lightPrimary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "${AppStrings.upcomingCharge}${sub.name}",
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        "${AppStrings.youWillBeCharged}₺${sub.price.toStringAsFixed(2)}. "
-                                        "Ödeme tarihi: ${AppStrings.formatDate(sub.nextBillingDate)}. "
-                                        "${AppStrings.chargeDisclaimer}",
-                                        style: TextStyle(
-                                          color: textColor.withOpacity(0.75),
-                                          fontSize: 13,
-                                          height: 1.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                child: Icon(
+                                  Icons.notifications_active,
+                                  color: isDark
+                                      ? AppColors.primaryAccent
+                                      : AppColors.lightPrimary,
+                                  size: 24,
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      title,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      body,
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.7),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
