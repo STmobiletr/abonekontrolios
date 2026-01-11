@@ -127,13 +127,13 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
         ref.read(settingsNotifierProvider).notificationsEnabled;
 
     if (notificationsEnabled) {
-      // Sadece eklenen/düzenlenen abonelik için bildirim planla.
-      // (Tüm bildirimleri cancelAll + tekrar schedule etmek iOS'ta "hemen bildirim" algısını tetikleyebiliyor.)
       final settings = ref.read(settingsNotifierProvider);
 
+      // Bu aboneliğe ait eski planı temizle (özellikle "Düzenle" için).
       final notifId = stableNotifId(newSub.id);
       await NotificationService().cancelNotification(notifId);
 
+      // Sadece bu abonelik için 1 gün önceden (09:00) hatırlatma planla.
       await NotificationService().scheduleBillingNotification(
         id: notifId,
         title: "${AppStrings.upcomingCharge}${newSub.name}",
@@ -145,7 +145,8 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     }
 
     Navigator.pop(context);
-  }
+
+}
 
   @override
   Widget build(BuildContext context) {
