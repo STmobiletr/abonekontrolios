@@ -37,17 +37,16 @@ class NotificationService {
           requestAlertPermission: true,
         );
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsDarwin,
-        );
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+    );
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
-    /// Schedules a billing reminder notification
-  /// Hatırlatma: ödeme tarihinden 1 gün önce, sabah 12:00.
+  /// Schedules a billing reminder notification
+  /// Hatırlatma: ödeme tarihinden 1 gün önce, sabah 09:00.
   ///
   /// iOS bazen geçmiş/yanlış hesaplanan zamanlarda bildirimi "hemen" gösterebilir.
   /// Bu yüzden TZDateTime ile aynı timezone'da (tz.local) hesap yapıp,
@@ -65,16 +64,16 @@ class NotificationService {
         scheduledDate.year,
         scheduledDate.month,
         scheduledDate.day,
-        12,
+        9,
         0,
       ).subtract(const Duration(days: 1));
 
       final tzNow = tz.TZDateTime.now(tz.local);
 
       // Çok yakın/geçmiş -> asla planlama (iOS'ta anında düşme bug'ını engeller)
-      if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 30)))) {
+      if (!tzReminder.isAfter(tzNow.add(const Duration(minutes: 5)))) {
         debugPrint(
-          "Skip scheduling (past/too soon). id=$id now=$tzNow reminder=$tzReminder pay=$scheduledDate",
+          'Skip scheduling (past/too soon). id=$id now=$tzNow reminder=$tzReminder pay=$scheduledDate',
         );
         return;
       }
@@ -97,14 +96,20 @@ class NotificationService {
             priority: Priority.high,
             color: AppColors.primaryAccent,
           ),
-          iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true, presentBadge: true),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentSound: true,
+            presentBadge: true,
+          ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
 
-      debugPrint("Scheduled notification. id=$id at=$tzReminder pay=$scheduledDate");
+      debugPrint(
+        'Scheduled notification. id=$id at=$tzReminder pay=$scheduledDate',
+      );
     } catch (e) {
-      debugPrint("Error scheduling notification: $e");
+      debugPrint('Error scheduling notification: $e');
     }
   }
 
