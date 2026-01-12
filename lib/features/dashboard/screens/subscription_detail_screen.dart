@@ -5,6 +5,7 @@ import '../../../core/ui/glass_box.dart';
 import '../../../core/ui/banner_ad_widget.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/utils/url_utils.dart';
 import '../../subscriptions/models/subscription_model.dart';
 import '../../subscriptions/providers/subscription_providers.dart';
 import '../../subscriptions/screens/add_subscription_screen.dart';
@@ -153,9 +154,10 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final Uri url = Uri.parse(
+                        final normalizedUrl = normalizeUrl(
                           subscription.cancellationUrl!,
                         );
+                        final Uri url = Uri.parse(normalizedUrl);
                         if (await canLaunchUrl(url)) {
                           await launchUrl(
                             url,
