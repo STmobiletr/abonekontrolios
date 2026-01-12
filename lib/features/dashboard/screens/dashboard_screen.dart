@@ -362,7 +362,7 @@ class DashboardScreen extends ConsumerWidget {
 
             // Footer
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
               child: Text(
                 AppStrings.version,
                 style: TextStyle(
