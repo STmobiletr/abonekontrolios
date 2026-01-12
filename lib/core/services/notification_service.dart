@@ -121,6 +121,12 @@ class NotificationService {
 
   /// Cancels all scheduled notifications (alias for full cleanup).
   Future<void> cancelAllScheduledNotifications() async {
+    final pending =
+        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    for (final request in pending) {
+      await flutterLocalNotificationsPlugin.cancel(request.id);
+    }
+
     await cancelAllNotifications();
   }
 }
