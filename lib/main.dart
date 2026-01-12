@@ -43,11 +43,14 @@ void main() async {
         try {
           await Hive.openBox<SubscriptionModel>('subscriptions');
           await Hive.openBox('settings');
+          await Hive.openBox('dismissed_notifications');
         } catch (e) {
           debugPrint("Error opening Hive box: $e");
           // Delete corrupted box and restart
           await Hive.deleteBoxFromDisk('subscriptions');
           await Hive.openBox<SubscriptionModel>('subscriptions');
+          await Hive.openBox('settings');
+          await Hive.openBox('dismissed_notifications');
         }
       } catch (e) {
         debugPrint("Failed to initialize Hive: $e");
