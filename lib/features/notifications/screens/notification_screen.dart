@@ -22,11 +22,13 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  late final Box _dismissedNotificationsBox;
 
   @override
   void initState() {
     super.initState();
     _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
+    _dismissedNotificationsBox = Hive.box('dismissed_notifications');
   }
 
   int _daysUntil(DateTime targetDate) {
@@ -36,9 +38,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return target.difference(today).inDays;
   }
 
+  String _dismissKeyFor(SubscriptionModel subscription) {
+    return '${subscription.id}-${subscription.nextBillingDate.toIso8601String()}';
+  }
+
   List<SubscriptionModel> _dueInOneDay() {
     final items = _subscriptionsBox.values
         .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .where((s) => !_dismissedNotificationsBox.containsKey(_dismissKeyFor(s)))
         .toList();
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
@@ -74,11 +81,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     if (confirmed != true) return;
 
+    final due = _dueInOneDay();
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.cancelAllNotifications();
+    for (final subscription in due) {
+      await _dismissedNotificationsBox.put(_dismissKeyFor(subscription), true);
+    }
 
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
     );
