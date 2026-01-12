@@ -12,6 +12,7 @@ import '../models/subscription_model.dart';
 import '../providers/subscription_providers.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/utils/stable_notif_id.dart';
+import '../../../core/utils/url_utils.dart';
 import '../../settings/providers/settings_provider.dart';
 
 /// Screen to add or edit a subscription
@@ -128,7 +129,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       nextBillingDate: _nextBillingDate,
       colorHex: '#${_selectedColor.value.toRadixString(16).substring(2)}',
       cancellationUrl: _cancelUrlController.text.isNotEmpty
-          ? _cancelUrlController.text
+          ? normalizeUrl(_cancelUrlController.text)
           : null,
       category: _selectedCategory,
     );
