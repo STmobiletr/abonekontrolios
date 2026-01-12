@@ -76,7 +76,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.cancelAllScheduledNotifications();
+    await notificationService.cancelAllNotifications();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
