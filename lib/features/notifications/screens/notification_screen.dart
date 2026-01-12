@@ -22,11 +22,14 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  late final Box _settingsBox;
+  static const String _dismissedNotificationsKey = 'dismissed_notifications';
 
   @override
   void initState() {
     super.initState();
     _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
+    _settingsBox = Hive.box('settings');
   }
 
   int _daysUntil(DateTime targetDate) {
@@ -36,9 +39,33 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return target.difference(today).inDays;
   }
 
-  List<SubscriptionModel> _dueInOneDay() {
+  String _dateKey(DateTime date) {
+    final normalized = DateTime(date.year, date.month, date.day);
+    return normalized.toIso8601String();
+  }
+
+  Map<String, String> _dismissedNotifications() {
+    final raw = _settingsBox.get(
+      _dismissedNotificationsKey,
+      defaultValue: <String, String>{},
+    );
+    if (raw is Map) {
+      return raw.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+    }
+    return <String, String>{};
+  }
+
+  List<SubscriptionModel> _dueInOneDay({bool includeDismissed = false}) {
+    final dismissed = _dismissedNotifications();
     final items = _subscriptionsBox.values
         .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .where((s) {
+          if (includeDismissed) return true;
+          final dismissedDate = dismissed[s.id];
+          return dismissedDate != _dateKey(s.nextBillingDate);
+        })
         .toList();
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
@@ -76,9 +103,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.cancelAllScheduledNotifications();
+    await notificationService.cancelAllNotifications();
+
+    final dueNow = _dueInOneDay(includeDismissed: true);
+    if (dueNow.isNotEmpty) {
+      final dismissed = _dismissedNotifications();
+      for (final sub in dueNow) {
+        dismissed[sub.id] = _dateKey(sub.nextBillingDate);
+      }
+      await _settingsBox.put(_dismissedNotificationsKey, dismissed);
+    }
 
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
     );
