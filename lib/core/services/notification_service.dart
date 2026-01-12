@@ -105,17 +105,7 @@ class NotificationService {
 
   /// Cancels all notifications
   Future<void> cancelAllNotifications() async {
-    // cancelAll genelde pending + delivered bildirimleri temizler,
-    // fakat bazı iOS sürümlerinde ekstra platform çağrısı gerekebilir.
+    // cancelAll genelde pending + delivered bildirimleri temizler.
     await flutterLocalNotificationsPlugin.cancelAll();
-
-    // iOS/macOS spesifik temizleme (varsa)
-    final ios = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-    await ios?.cancelAll();
-
-    final macos = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
-    await macos?.cancelAll();
   }
 }
