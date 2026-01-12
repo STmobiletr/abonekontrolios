@@ -16,7 +16,7 @@ class AdService {
   static int _retrySeconds = 30;
 
   // ✅ Senin PROD banner id’lerin
-  static const String _androidBannerProd = 'ca-app-pub-1508482824588822/1698554380';
+  static const String _androidBannerProd = 'ca-app-pub-1508482824588822/5603669055';
   static const String _iosBannerProd = 'ca-app-pub-1508482824588822/1698554380';
 
   static String get bannerAdUnitId {
