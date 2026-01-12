@@ -16,22 +16,10 @@ class AdService {
   static int _retrySeconds = 30;
 
   // ✅ Senin PROD banner id’lerin
-  static const String _androidBannerProd = 'ca-app-pub-1508482824588822/5603669055';
+  static const String _androidBannerProd = 'ca-app-pub-1508482824588822/1698554380';
   static const String _iosBannerProd = 'ca-app-pub-1508482824588822/1698554380';
 
-  // ✅ Google demo TEST banner id’leri (TestFlight’ta da çalışır)
-  static const String _androidBannerTest = 'ca-app-pub-3940256099942544/6300978111';
-  static const String _iosBannerTest = 'ca-app-pub-3940256099942544/2934735716';
-
-  static bool get _forceTestAds =>
-      const bool.fromEnvironment('FORCE_TEST_ADS', defaultValue: true);
-
   static String get bannerAdUnitId {
-    if (_forceTestAds) {
-      if (Platform.isAndroid) return _androidBannerTest;
-      if (Platform.isIOS) return _iosBannerTest;
-    }
-
     if (Platform.isAndroid) return _androidBannerProd;
     if (Platform.isIOS) return _iosBannerProd;
 
@@ -43,7 +31,7 @@ class AdService {
     _initialized = true;
 
     await MobileAds.instance.initialize();
-    debugPrint('AdService: FORCE_TEST_ADS=$_forceTestAds unitId=$bannerAdUnitId');
+    debugPrint('AdService: unitId=$bannerAdUnitId');
     _loadSharedBanner();
   }
 
