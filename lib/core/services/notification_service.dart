@@ -113,9 +113,11 @@ class NotificationService {
     final ios = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
     await ios?.cancelAll();
+    await ios?.removeAllDeliveredNotifications();
 
     final macos = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
     await macos?.cancelAll();
+    await macos?.removeAllDeliveredNotifications();
   }
 }
