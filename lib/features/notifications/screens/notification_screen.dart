@@ -60,8 +60,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _storeClearedIds(Iterable<String> ids) async {
+    final existing = _clearedIdsForToday();
+    final merged = {...existing, ...ids};
     await _settingsBox.put(_clearedDateKey, _today().toIso8601String());
-    await _settingsBox.put(_clearedIdsKey, ids.toList());
+    await _settingsBox.put(_clearedIdsKey, merged.toList());
   }
 
   List<SubscriptionModel> _dueInOneDay() {
