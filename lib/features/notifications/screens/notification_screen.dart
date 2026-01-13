@@ -22,11 +22,16 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  late final Box _settingsBox;
+
+  static const String _clearedIdsKey = 'cleared_notification_ids';
+  static const String _clearedDateKey = 'cleared_notification_date';
 
   @override
   void initState() {
     super.initState();
     _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
+    _settingsBox = Hive.box('settings');
   }
 
   int _daysUntil(DateTime targetDate) {
@@ -36,9 +41,37 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return target.difference(today).inDays;
   }
 
+  DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  Set<String> _clearedIdsForToday() {
+    final storedDate = _settingsBox.get(_clearedDateKey) as String?;
+    final todayKey = _today().toIso8601String();
+    if (storedDate != todayKey) {
+      _settingsBox.put(_clearedDateKey, todayKey);
+      _settingsBox.put(_clearedIdsKey, <String>[]);
+      return <String>{};
+    }
+
+    final stored = _settingsBox.get(_clearedIdsKey) as List<dynamic>? ?? [];
+    return stored.map((e) => e.toString()).toSet();
+  }
+
+  Future<void> _storeClearedIds(Iterable<String> ids) async {
+    await _settingsBox.put(_clearedDateKey, _today().toIso8601String());
+    await _settingsBox.put(_clearedIdsKey, ids.toList());
+  }
+
   List<SubscriptionModel> _dueInOneDay() {
+    final clearedIds = _clearedIdsForToday();
     final items = _subscriptionsBox.values
-        .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .where(
+          (s) =>
+              _daysUntil(s.nextBillingDate) == 1 &&
+              !clearedIds.contains(s.id),
+        )
         .toList();
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
@@ -74,12 +107,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     if (confirmed != true) return;
 
+    final dueBeforeClear = _dueInOneDay();
     final notificationService = NotificationService();
     await notificationService.init();
     final clearedCount =
         await notificationService.cancelAllScheduledNotifications();
+    await _storeClearedIds(dueBeforeClear.map((s) => s.id));
 
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
