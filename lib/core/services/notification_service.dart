@@ -119,8 +119,11 @@ class NotificationService {
     await macos?.cancelAll();
   }
 
-  /// Cancels all scheduled notifications (alias for cancelAllNotifications).
-  Future<void> cancelAllScheduledNotifications() async {
+  /// Cancels all scheduled notifications and returns how many were pending.
+  Future<int> cancelAllScheduledNotifications() async {
+    final pending =
+        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
     await cancelAllNotifications();
+    return pending.length;
   }
 }

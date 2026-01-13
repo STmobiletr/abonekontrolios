@@ -76,11 +76,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.cancelAllNotifications();
+    final clearedCount =
+        await notificationService.cancelAllScheduledNotifications();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+      SnackBar(
+        content: Text(
+          clearedCount > 0
+              ? 'Planlanan $clearedCount bildirim temizlendi'
+              : 'Planlanan bildirim yoktu',
+        ),
+      ),
     );
   }
 
