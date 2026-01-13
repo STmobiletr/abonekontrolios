@@ -24,7 +24,7 @@ class AdService {
   static const String _iosBannerTest = 'ca-app-pub-3940256099942544/2934735716';
 
   static bool get _forceTestAds =>
-      const bool.fromEnvironment('FORCE_TEST_ADS', defaultValue: true);
+      const bool.fromEnvironment('FORCE_TEST_ADS', defaultValue: false);
 
   static String get bannerAdUnitId {
     if (_forceTestAds) {

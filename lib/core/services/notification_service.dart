@@ -118,4 +118,12 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
     await macos?.cancelAll();
   }
+
+  /// Cancels all scheduled notifications and returns how many were pending.
+  Future<int> cancelAllScheduledNotifications() async {
+    final pending =
+        await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    await cancelAllNotifications();
+    return pending.length;
+  }
 }
