@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:io';
+
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +22,8 @@ void main() async {
     () async {
       // Ensure Flutter bindings are ready
       WidgetsFlutterBinding.ensureInitialized();
+
+      await _requestTrackingAuthorizationIfNeeded();
 
       // Ads initialize
       try {
@@ -74,6 +79,15 @@ void main() async {
       debugPrint(stack.toString());
     },
   );
+}
+
+Future<void> _requestTrackingAuthorizationIfNeeded() async {
+  if (!Platform.isIOS) return;
+
+  final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+  if (status == TrackingStatus.notDetermined) {
+    await AppTrackingTransparency.requestTrackingAuthorization();
+  }
 }
 
 /// Root Widget
