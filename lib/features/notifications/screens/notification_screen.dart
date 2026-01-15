@@ -85,10 +85,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.cancelAllScheduledNotifications();
-    await _settingsBox.put(
+    final existingCleared = (_settingsBox.get(
       'cleared_notification_ids',
-      _dueInOneDay().map((item) => item.id).toList(),
-    );
+      defaultValue: <String>[],
+    ) as List)
+        .cast<String>();
+    final clearedIds = {
+      ...existingCleared,
+      ..._dueInOneDay().map((item) => item.id),
+    }.toList();
+    await _settingsBox.put('cleared_notification_ids', clearedIds);
 
     if (!mounted) return;
     setState(() {});
