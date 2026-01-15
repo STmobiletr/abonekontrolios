@@ -111,7 +111,6 @@ class SettingsNotifier extends _$SettingsNotifier {
 
     if (!isEnabled) {
       await NotificationService().cancelAllNotifications();
-      await _box.put('notifications_cleared', true);
       return;
     }
 
@@ -136,7 +135,7 @@ class SettingsNotifier extends _$SettingsNotifier {
       );
     }
 
-    await _box.put('notifications_cleared', false);
+    await _box.put('cleared_notification_ids', <String>[]);
   }
 
   Future<void> completeOnboarding() async {

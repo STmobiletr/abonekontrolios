@@ -39,14 +39,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   List<SubscriptionModel> _dueInOneDay() {
-    final bool notificationsCleared =
-        _settingsBox.get('notifications_cleared', defaultValue: false) as bool;
-    if (notificationsCleared) {
-      return [];
-    }
+    final clearedIds =
+        (_settingsBox.get('cleared_notification_ids', defaultValue: <String>[])
+                as List)
+            .cast<String>();
 
     final items = _subscriptionsBox.values
         .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .where((s) => !clearedIds.contains(s.id))
         .toList();
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
@@ -85,7 +85,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.cancelAllScheduledNotifications();
-    await _settingsBox.put('notifications_cleared', true);
+    await _settingsBox.put(
+      'cleared_notification_ids',
+      _dueInOneDay().map((item) => item.id).toList(),
+    );
 
     if (!mounted) return;
     setState(() {});
