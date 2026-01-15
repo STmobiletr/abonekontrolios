@@ -236,7 +236,9 @@ class SubscriptionDetailScreen extends ConsumerWidget {
 
                           // Show confirmation
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(AppStrings.subscriptionRemoved),
+                            const SnackBar(
+                              content: Text(AppStrings.subscriptionRemoved),
+                              duration: Duration(seconds: 1),
                             ),
                           );
                         },

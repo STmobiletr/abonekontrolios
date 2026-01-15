@@ -113,9 +113,12 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
 
   Future<void> _saveSubscription() async {
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text(AppStrings.enterNamePrice)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.enterNamePrice),
+          duration: Duration(seconds: 1),
+        ),
+      );
       return;
     }
 
