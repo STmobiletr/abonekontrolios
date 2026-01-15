@@ -90,7 +90,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (!mounted) return;
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+      const SnackBar(
+        content: Text('Planlanan bildirimler temizlendi'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
