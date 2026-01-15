@@ -162,8 +162,6 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
             "Ödeme tarihi: ${AppStrings.formatDate(newSub.nextBillingDate)}. ${AppStrings.chargeDisclaimer}",
         scheduledDate: newSub.nextBillingDate,
       );
-
-      await Hive.box('settings').put('notifications_cleared', false);
     }
 
     Navigator.pop(context);
