@@ -22,11 +22,13 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  late final Box _settingsBox;
 
   @override
   void initState() {
     super.initState();
     _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
+    _settingsBox = Hive.box('settings');
   }
 
   int _daysUntil(DateTime targetDate) {
@@ -37,6 +39,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   List<SubscriptionModel> _dueInOneDay() {
+    final bool notificationsCleared =
+        _settingsBox.get('notifications_cleared', defaultValue: false) as bool;
+    if (notificationsCleared) {
+      return [];
+    }
+
     final items = _subscriptionsBox.values
         .where((s) => _daysUntil(s.nextBillingDate) == 1)
         .toList();
@@ -77,8 +85,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.cancelAllScheduledNotifications();
+    await _settingsBox.put('notifications_cleared', true);
 
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
     );

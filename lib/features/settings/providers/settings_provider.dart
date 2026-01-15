@@ -111,6 +111,7 @@ class SettingsNotifier extends _$SettingsNotifier {
 
     if (!isEnabled) {
       await NotificationService().cancelAllNotifications();
+      await _box.put('notifications_cleared', true);
       return;
     }
 
@@ -134,6 +135,8 @@ class SettingsNotifier extends _$SettingsNotifier {
         scheduledDate: sub.nextBillingDate,
       );
     }
+
+    await _box.put('notifications_cleared', false);
   }
 
   Future<void> completeOnboarding() async {
