@@ -39,6 +39,13 @@ class AppStrings {
   static const String backupRestoreSubtitle = "Verilerinizi yerel olarak kaydedin";
   static const String clearAllData = "Tüm Verileri Temizle";
   static const String clearAllDataSubtitle = "Uygulamayı varsayılana sıfırla";
+  // Legal
+  static const String legal = "Yasal";
+  static const String privacyPolicy = "Gizlilik Politikası";
+  static const String termsOfService = "Kullanım Koşulları";
+  static const String privacyPolicyUrl = "https://abonekontrol-site.pages.dev/privacy";
+  static const String termsOfServiceUrl = "https://abonekontrol-site.pages.dev/terms"; // Assumed terms path, user can verify
+
   static const String about = "Hakkında";
   static const String selectCurrency = "Para Birimi Seçin";
   static const String selectLanguage = "Dil Seçiniz";

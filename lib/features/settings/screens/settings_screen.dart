@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/ui/glass_box.dart';
 import '../../../core/constants/app_strings.dart';
@@ -131,6 +132,23 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () {
                   _showClearDataDialog(context, ref);
                 },
+              ),
+
+              const SizedBox(height: 20),
+
+              // Legal Section
+              _buildSectionHeader(context, AppStrings.legal),
+              _buildSettingTile(
+                context,
+                icon: Icons.privacy_tip,
+                title: AppStrings.privacyPolicy,
+                onTap: () => _launchURL(AppStrings.privacyPolicyUrl),
+              ),
+              _buildSettingTile(
+                context,
+                icon: Icons.description,
+                title: AppStrings.termsOfService,
+                onTap: () => _launchURL(AppStrings.termsOfServiceUrl),
               ),
 
               const SizedBox(height: 20),
@@ -491,5 +509,12 @@ class SettingsScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url)) {
+      debugPrint('Could not launch $url');
+    }
   }
 }
