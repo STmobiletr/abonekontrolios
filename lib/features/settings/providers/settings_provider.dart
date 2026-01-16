@@ -134,6 +134,8 @@ class SettingsNotifier extends _$SettingsNotifier {
         scheduledDate: sub.nextBillingDate,
       );
     }
+
+    await _box.put('cleared_notification_ids', <String>[]);
   }
 
   Future<void> completeOnboarding() async {

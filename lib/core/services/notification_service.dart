@@ -118,4 +118,9 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
     await macos?.cancelAll();
   }
+
+  /// Cancels all scheduled notifications (alias for cancelAllNotifications)
+  Future<void> cancelAllScheduledNotifications() async {
+    await cancelAllNotifications();
+  }
 }

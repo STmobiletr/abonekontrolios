@@ -427,7 +427,10 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.pop(context);
                   // Show loading indicator
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text(AppStrings.creatingBackup)),
+                    const SnackBar(
+                      content: Text(AppStrings.creatingBackup),
+                      duration: Duration(seconds: 1),
+                    ),
                   );
 
                   final success = await BackupService().createBackup();
@@ -443,6 +446,7 @@ class SettingsScreen extends ConsumerWidget {
                         backgroundColor: success
                             ? AppColors.primaryAccent
                             : AppColors.dangerAccent,
+                        duration: const Duration(seconds: 1),
                       ),
                     );
                   }
@@ -465,7 +469,10 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.pop(context);
                   // Show loading indicator
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text(AppStrings.restoringBackup)),
+                    const SnackBar(
+                      content: Text(AppStrings.restoringBackup),
+                      duration: Duration(seconds: 1),
+                    ),
                   );
 
                   final success = await BackupService().restoreBackup();
@@ -481,6 +488,7 @@ class SettingsScreen extends ConsumerWidget {
                         backgroundColor: success
                             ? AppColors.primaryAccent
                             : AppColors.dangerAccent,
+                        duration: const Duration(seconds: 1),
                       ),
                     );
                   }

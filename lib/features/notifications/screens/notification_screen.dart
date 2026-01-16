@@ -22,11 +22,13 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late final Box<SubscriptionModel> _subscriptionsBox;
+  late final Box _settingsBox;
 
   @override
   void initState() {
     super.initState();
     _subscriptionsBox = Hive.box<SubscriptionModel>('subscriptions');
+    _settingsBox = Hive.box('settings');
   }
 
   int _daysUntil(DateTime targetDate) {
@@ -37,8 +39,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   List<SubscriptionModel> _dueInOneDay() {
+    final clearedIds =
+        (_settingsBox.get('cleared_notification_ids', defaultValue: <String>[])
+                as List)
+            .cast<String>();
+
     final items = _subscriptionsBox.values
         .where((s) => _daysUntil(s.nextBillingDate) == 1)
+        .where((s) => !clearedIds.contains(s.id))
         .toList();
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
@@ -77,10 +85,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.cancelAllScheduledNotifications();
+    final existingCleared = (_settingsBox.get(
+      'cleared_notification_ids',
+      defaultValue: <String>[],
+    ) as List)
+        .cast<String>();
+    final clearedIds = {
+      ...existingCleared,
+      ..._dueInOneDay().map((item) => item.id),
+    }.toList();
+    await _settingsBox.put('cleared_notification_ids', clearedIds);
 
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+      const SnackBar(
+        content: Text('Planlanan bildirimler temizlendi'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
