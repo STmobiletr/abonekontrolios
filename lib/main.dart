@@ -162,17 +162,23 @@ class _AppBootstrapState extends State<AppBootstrap> {
   }
 
   Future<void> _initializeTrackingAndAds() async {
-    try {
-      await TrackingService.requestTrackingAuthorization();
-    } catch (e) {
-      debugPrint("Failed to request tracking authorization: $e");
-    }
+    // Wait for the first frame to insure context is ready implies native window is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Small delay to ensure splash removal and active state on iOS 15+
+      await Future.delayed(const Duration(seconds: 1));
+      
+      try {
+        await TrackingService.requestTrackingAuthorization();
+      } catch (e) {
+        debugPrint("Failed to request tracking authorization: $e");
+      }
 
-    try {
-      await AdService.initialize();
-    } catch (e) {
-      debugPrint("Failed to initialize Mobile Ads: $e");
-    }
+      try {
+        await AdService.initialize();
+      } catch (e) {
+        debugPrint("Failed to initialize Mobile Ads: $e");
+      }
+    });
   }
 
   @override
