@@ -165,7 +165,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
     // Wait for the first frame to insure context is ready implies native window is ready
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Small delay to ensure splash removal and active state on iOS 15+
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 3));
       
       try {
         await TrackingService.requestTrackingAuthorization();
