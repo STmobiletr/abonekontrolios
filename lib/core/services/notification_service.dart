@@ -118,4 +118,5 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
     await macos?.cancelAll();
   }
+
 }

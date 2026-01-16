@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/services/ad_service.dart';
+import 'core/services/tracking_service.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'core/services/notification_service.dart';
@@ -19,13 +20,6 @@ void main() async {
     () async {
       // Ensure Flutter bindings are ready
       WidgetsFlutterBinding.ensureInitialized();
-
-      // Ads initialize
-      try {
-        await AdService.initialize();
-      } catch (e) {
-        debugPrint("Failed to initialize Mobile Ads: $e");
-      }
 
       // Catch Flutter errors
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -67,7 +61,7 @@ void main() async {
 
 
       // Run App
-      runApp(const ProviderScope(child: AboneKontrolApp()));
+      runApp(const ProviderScope(child: AppBootstrap()));
     },
     (error, stack) {
       debugPrint("Caught Unhandled Error: $error");
@@ -150,5 +144,39 @@ class AboneKontrolApp extends ConsumerWidget {
           ? const DashboardScreen()
           : const OnboardingScreen(),
     );
+  }
+}
+
+class AppBootstrap extends StatefulWidget {
+  const AppBootstrap({super.key});
+
+  @override
+  State<AppBootstrap> createState() => _AppBootstrapState();
+}
+
+class _AppBootstrapState extends State<AppBootstrap> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeTrackingAndAds();
+  }
+
+  Future<void> _initializeTrackingAndAds() async {
+    try {
+      await TrackingService.requestTrackingAuthorization();
+    } catch (e) {
+      debugPrint("Failed to request tracking authorization: $e");
+    }
+
+    try {
+      await AdService.initialize();
+    } catch (e) {
+      debugPrint("Failed to initialize Mobile Ads: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const AboneKontrolApp();
   }
 }
