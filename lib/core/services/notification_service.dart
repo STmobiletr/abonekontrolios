@@ -119,8 +119,4 @@ class NotificationService {
     await macos?.cancelAll();
   }
 
-  /// Cancels all scheduled notifications (alias for cancelAllNotifications)
-  Future<void> cancelAllScheduledNotifications() async {
-    await cancelAllNotifications();
-  }
 }
