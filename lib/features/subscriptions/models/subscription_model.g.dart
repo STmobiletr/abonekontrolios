@@ -26,13 +26,14 @@ class SubscriptionModelAdapter extends TypeAdapter<SubscriptionModel> {
       cancellationUrl: fields[6] as String?,
       colorHex: fields[7] as String?,
       category: fields[8] as String,
+      lastNotificationClearedDate: fields[9] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, SubscriptionModel obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class SubscriptionModelAdapter extends TypeAdapter<SubscriptionModel> {
       ..writeByte(7)
       ..write(obj.colorHex)
       ..writeByte(8)
-      ..write(obj.category);
+      ..write(obj.category)
+      ..writeByte(9)
+      ..write(obj.lastNotificationClearedDate);
   }
 
   @override

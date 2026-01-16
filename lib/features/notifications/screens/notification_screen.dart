@@ -37,9 +37,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   List<SubscriptionModel> _dueInOneDay() {
-    final items = _subscriptionsBox.values
-        .where((s) => _daysUntil(s.nextBillingDate) == 1)
-        .toList();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final items = _subscriptionsBox.values.where((s) {
+      // 1. Check if due in 1 day
+      final isDue = _daysUntil(s.nextBillingDate) == 1;
+      if (!isDue) return false;
+
+      // 2. Check if already cleared today
+      if (s.lastNotificationClearedDate != null) {
+        final cleared = s.lastNotificationClearedDate!;
+        final clearedDate = DateTime(cleared.year, cleared.month, cleared.day);
+        if (clearedDate.isAtSameMomentAs(today)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
     items.sort((a, b) => a.nextBillingDate.compareTo(b.nextBillingDate));
     return items;
   }
@@ -51,13 +68,21 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _clearScheduledNotifications() async {
+    final dueItems = _dueInOneDay();
+    if (dueItems.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Temizlenecek bildirim yok')),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Bildirimleri temizle'),
         content: const Text(
-          'Telefonunuza planlanan bildirimler temizlenecek. '
-          'Abonelikler silinmez.',
+          'Listelenen bildirimler ekrandan kaldırılacak. '
+          'Abonelikleriniz silinmez.',
         ),
         actions: [
           TextButton(
@@ -74,13 +99,45 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     if (confirmed != true) return;
 
+    // 1. Clear system notifications
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.cancelAllScheduledNotifications();
+    await notificationService.cancelAllNotifications();
+
+    // 2. Update local state to hide from list
+    final now = DateTime.now();
+    for (final sub in dueItems) {
+      // We need to create a new object or copyWith mechanism if immutable, 
+      // but Hive objects are mutable if they extend HiveObject.
+      // However, SubscriptionModel fields are final. 
+      // We need to support updating the field. 
+      // Ideally we would have a copyWith or setters.
+      // Since fields are final, we have to replace the object in the box.
+      
+      // Creating a new instance with updated field
+      final updatedSub = SubscriptionModel(
+        id: sub.id,
+        name: sub.name,
+        price: sub.price,
+        currency: sub.currency,
+        billingCycle: sub.billingCycle,
+        nextBillingDate: sub.nextBillingDate,
+        cancellationUrl: sub.cancellationUrl,
+        colorHex: sub.colorHex,
+        category: sub.category,
+        lastNotificationClearedDate: now,
+      );
+      
+      // Determine key - if extended HiveObject, key is available.
+      // If manually put, we might need the original key.
+      // Since we don't know the key easily from the value iteration unless we use keys loop,
+      // But HiveObject has .key property if it's in a box.
+      await _subscriptionsBox.put(sub.key, updatedSub);
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Planlanan bildirimler temizlendi')),
+      const SnackBar(content: Text('Bildirimler temizlendi')),
     );
   }
 

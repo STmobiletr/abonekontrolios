@@ -32,6 +32,9 @@ class SubscriptionModel extends HiveObject {
   @HiveField(8)
   final String category;
 
+  @HiveField(9)
+  final DateTime? lastNotificationClearedDate;
+
   SubscriptionModel({
     required this.id,
     required this.name,
@@ -42,5 +45,6 @@ class SubscriptionModel extends HiveObject {
     this.cancellationUrl,
     this.colorHex,
     this.category = 'Eğlence',
+    this.lastNotificationClearedDate,
   });
 }
